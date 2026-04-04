@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — CodeForage AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --bg2: #0D0D1A;
+    --bg3: #111120;
+    --surface: rgba(255,255,255,0.035);
+    --surface2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(0,212,255,0.2);
+    --cyan: #00D4FF;
+    --amber: #FFB347;
+    --text: #F0F0F8;
+    --text2: #8888AA;
+    --text3: #44445A;
+    --green: #00FF88;
+    --red: #FF4D6D;
+    --radius: 14px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+  
+  /* Noise */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ---- APP SHELL ---- */
+  .app-sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 50;
+  }
+  
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .sidebar-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--cyan), var(--amber));
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .sidebar-logo span { color: var(--cyan); }
+  
+  .sidebar-nav {
+    padding: 12px 10px;
+    flex: 1;
+  }
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 8px 10px 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--surface); color: var(--text); }
+  .nav-item.active {
+    background: rgba(0,212,255,0.08);
+    color: var(--cyan);
+    font-weight: 500;
+  }
+  .nav-icon { width: 16px; text-align: center; font-size: 14px; }
+  
+  .nav-badge {
+    margin-left: auto;
+    background: rgba(0,212,255,0.12);
+    color: var(--cyan);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .sidebar-bottom {
+    padding: 12px 10px;
+    border-top: 1px solid var(--border);
+  }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .user-card:hover { background: var(--surface); }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-plan {
+    font-size: 11px;
+    color: var(--cyan);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .user-plan::before { content: '●'; font-size: 6px; }
+
+  /* ---- MAIN CONTENT ---- */
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .topbar {
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(8,8,16,0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text2);
+  }
+  .topbar-left span { color: var(--text); font-weight: 500; }
+  .breadcrumb-sep { color: var(--text3); }
+  
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .usage-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .usage-bar {
+    width: 60px; height: 3px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .usage-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--amber));
+    border-radius: 3px;
+    width: 35%;
+    transition: width 0.5s ease;
+  }
+  
+  .btn-new {
+    background: var(--cyan);
+    border: none;
+    color: #080810;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-new:hover { background: #00EEFF; box-shadow: 0 6px 20px rgba(0,212,255,0.25); }
+
+  /* ---- CONTENT ---- */
+  .content {
+    padding: 32px;
+    flex: 1;
+  }
+  
+  .content-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .content-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .content-sub { font-size: 13px; color: var(--text2); font-weight: 300; }
+
+  /* ---- STATS ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s;
+  }
+  .stat-card:hover { border-color: rgba(0,212,255,0.15); transform: translateY(-2px); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+  
+  .stat-card-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 12px;
+  }
+  .stat-card-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -1.5px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-card-change {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .change-pos { color: var(--green); }
+  .change-neg { color: var(--red); }
+  .change-neutral { color: var(--text3); }
+
+  /* ---- PROJECTS GRID ---- */
+  .projects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .projects-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .filter-tab {
+    padding: 5px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text2);
+    border: none;
+    background: transparent;
+    font-family: 'Geist', sans-serif;
+  }
+  .filter-tab.active { background: var(--surface2); color: var(--text); }
+  
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  
+  .project-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    group: true;
+  }
+  .project-card:hover {
+    border-color: rgba(0,212,255,0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+  
+  .project-preview {
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+  }
+  .project-preview-bg {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text3);
+    position: relative;
+    overflow: hidden;
+  }
+  .pp-react {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
+    border-bottom: 1px solid rgba(99,102,241,0.15);
+  }
+  .pp-node {
+    background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04));
+    border-bottom: 1px solid rgba(0,212,255,0.15);
+  }
+  .pp-next {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border-bottom: 1px solid var(--border);
+  }
+  .pp-vue {
+    background: linear-gradient(135deg, rgba(65,184,131,0.12), rgba(65,184,131,0.04));
+    border-bottom: 1px solid rgba(65,184,131,0.15);
+  }
+  
+  .project-lang-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text2);
+    backdrop-filter: blur(8px);
+  }
+  
+  .status-dot {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 100px;
+    padding: 3px 8px;
+    font-size: 10px;
+    color: var(--text2);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+  }
+  .sd-live::before { content: '●'; color: var(--green); font-size: 7px; animation: pulse 2s infinite; }
+  .sd-idle::before { content: '●'; color: var(--text3); font-size: 7px; }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  
+  /* Mock code lines in preview */
+  .mock-code {
+    text-align: left;
+    padding: 16px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .mc-line {
+    display: flex;
+    gap: 8px;
+    line-height: 1.6;
+    font-size: 10px;
+  }
+  .mc-ln { color: var(--text3); min-width: 14px; text-align: right; }
+  .mc-r { color: #C792EA; }
+  .mc-b { color: #82AAFF; }
+  .mc-g { color: #C3E88D; }
+  .mc-c { color: #00D4FF; }
+  
+  .project-info {
+    padding: 16px 18px;
+  }
+  .project-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+  .project-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+  .project-meta-item { display: flex; align-items: center; gap: 4px; }
+  
+  .project-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .project-members {
+    display: flex;
+  }
+  .member-avatar {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--bg2);
+    margin-left: -6px;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .member-avatar:first-child { margin-left: 0; }
+  
+  .project-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .action-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Geist', sans-serif;
+  }
+  .action-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .action-btn.open {
+    background: rgba(0,212,255,0.08);
+    border-color: rgba(0,212,255,0.2);
+    color: var(--cyan);
+  }
+  .action-btn.open:hover { background: rgba(0,212,255,0.15); }
+
+  /* New project card */
+  .new-project-card {
+    background: var(--bg2);
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 220px;
+    cursor: pointer;
+    transition: all 0.25s;
+    color: var(--text3);
+  }
+  .new-project-card:hover {
+    border-color: rgba(0,212,255,0.3);
+    background: rgba(0,212,255,0.03);
+    color: var(--cyan);
+  }
+  .new-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    border: 1px dashed currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    transition: all 0.25s;
+  }
+  .new-project-card:hover .new-icon { background: rgba(0,212,255,0.08); }
+  .new-label { font-size: 13px; font-weight: 500; font-family: 'Syne', sans-serif; }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(8,8,16,0.85);
+    backdrop-filter: blur(16px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    width: 100%;
+    max-width: 460px;
+    animation: fadeSlideUp 0.25s ease both;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 28px; }
+  
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; margin-bottom: 7px; }
+  .form-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .form-input:focus { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(0,212,255,0.06); }
+  
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .template-option {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .template-option:hover { border-color: var(--border2); background: var(--surface); }
+  .template-option.selected { border-color: var(--cyan); background: rgba(0,212,255,0.06); }
+  .template-icon { font-size: 20px; margin-bottom: 6px; }
+  .template-name { font-size: 11px; font-weight: 600; color: var(--text2); }
+  
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .btn-cancel { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text2); font-family: 'Geist', sans-serif; font-size: 14px; padding: 12px; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+  .btn-cancel:hover { color: var(--text); }
+  .btn-create { flex: 2; background: var(--cyan); border: none; color: #080810; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+  .btn-create:hover { background: #00EEFF; box-shadow: 0 8px 24px rgba(0,212,255,0.25); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="app-sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">⚡</div>
+    Code<span>Forage</span>AI
+  </div>
+  
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">// workspace</div>
+    <a class="nav-item active" href="#">
+      <span class="nav-icon">▦</span>
+      Projects
+      <span class="nav-badge">5</span>
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">◈</span>
+      Templates
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">◉</span>
+      Deployments
+    </a>
+    
+    <div class="nav-section-label" style="margin-top:16px;">// account</div>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">⬡</span>
+      Usage & Billing
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">◎</span>
+      Team Members
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">⚙</span>
+      Settings
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">?</span>
+      Docs & Support
+    </a>
+  </nav>
+  
+  <!-- Usage indicator -->
+  <div style="padding: 0 10px 12px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 14px 12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;">TOKENS TODAY</span>
+        <span style="font-size:11px;color:var(--cyan);font-family:'JetBrains Mono',monospace;">35%</span>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+        <div style="width:35%;height:100%;background:linear-gradient(90deg,var(--cyan),var(--amber));border-radius:4px;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);">175k / 500k tokens</div>
+    </div>
+  </div>
+  
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="avatar">JD</div>
+      <div class="user-info">
+        <div class="user-name">johndoe</div>
+        <div class="user-plan">Pro Plan</div>
+      </div>
+      <span style="font-size:12px;color:var(--text3);">⋯</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span style="color:var(--text3);">CodeForageAI</span>
+      <span class="breadcrumb-sep">/</span>
+      <span>Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <div class="usage-pill">
+        <span>175k tokens</span>
+        <div class="usage-bar"><div class="usage-fill"></div></div>
+      </div>
+      <button class="btn-new" onclick="document.getElementById('new-modal').classList.add('show')">
+        + New Project
+      </button>
+    </div>
+  </div>
+  
+  <!-- Content -->
+  <div class="content">
+    <div class="content-header">
+      <div>
+        <div class="content-title">Good evening, John 👋</div>
+        <div class="content-sub">Here's what's happening with your projects</div>
+      </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-label">Total Projects</div>
+        <div class="stat-card-value">5</div>
+        <div class="stat-card-change"><span class="change-pos">↑ +2</span> <span class="change-neutral">this month</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">AI Messages</div>
+        <div class="stat-card-value">247</div>
+        <div class="stat-card-change"><span class="change-pos">↑ +38</span> <span class="change-neutral">vs last week</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Files Generated</div>
+        <div class="stat-card-value">1.2k</div>
+        <div class="stat-card-change"><span class="change-pos">↑ +186</span> <span class="change-neutral">this week</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Active Previews</div>
+        <div class="stat-card-value">2</div>
+        <div class="stat-card-change"><span class="change-neutral">of 5 max on Pro</span></div>
+      </div>
+    </div>
+    
+    <!-- Projects -->
+    <div class="projects-header">
+      <div class="projects-title">Your Projects</div>
+      <div class="filter-tabs">
+        <button class="filter-tab active">All</button>
+        <button class="filter-tab">Recent</button>
+        <button class="filter-tab">Shared</button>
+      </div>
+    </div>
+    
+    <div class="projects-grid">
+      <!-- Project 1 -->
+      <div class="project-card">
+        <div class="project-preview">
+          <div class="project-preview-bg pp-react">
+            <div class="mock-code">
+              <div class="mc-line"><span class="mc-ln">1</span><span class="mc-r">import</span> <span class="mc-b">React</span></div>
+              <div class="mc-line"><span class="mc-ln">2</span><span class="mc-r">import</span> <span class="mc-c">Dashboard</span></div>
+              <div class="mc-line"><span class="mc-ln">3</span></div>
+              <div class="mc-line"><span class="mc-ln">4</span><span class="mc-r">export</span> <span class="mc-b">default</span></div>
+              <div class="mc-line"><span class="mc-ln">5</span><span class="mc-b">function</span> <span class="mc-c">App()</span> <span>{</span></div>
+              <div class="mc-line"><span class="mc-ln">6</span><span>&nbsp;&nbsp;</span><span class="mc-r">return</span> <span>&lt;</span><span class="mc-c">Dashboard</span><span>/&gt;</span></div>
+            </div>
+          </div>
+          <div class="project-lang-badge">React + TS</div>
+          <div class="status-dot sd-live">Live</div>
+        </div>
+        <div class="project-info">
+          <div class="project-name">E-Commerce Dashboard</div>
+          <div class="project-meta">
+            <div class="project-meta-item">📁 <span>34 files</span></div>
+            <div class="project-meta-item">💬 <span>89 messages</span></div>
+            <div class="project-meta-item">🕐 <span>2h ago</span></div>
+          </div>
+          <div class="project-footer">
+            <div class="project-members">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">J</div>
+              <div class="member-avatar" style="background:linear-gradient(135deg,#EC4899,#F43F5E)">A</div>
+            </div>
+            <div class="project-actions">
+              <button class="action-btn">⋯</button>
+              <button class="action-btn open">Open →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Project 2 -->
+      <div class="project-card">
+        <div class="project-preview">
+          <div class="project-preview-bg pp-node">
+            <div class="mock-code">
+              <div class="mc-line"><span class="mc-ln">1</span><span class="mc-r">const</span> <span class="mc-b">express</span> <span>=</span> <span class="mc-c">require</span></div>
+              <div class="mc-line"><span class="mc-ln">2</span><span class="mc-r">const</span> <span class="mc-b">app</span> <span>=</span> <span class="mc-c">express()</span></div>
+              <div class="mc-line"><span class="mc-ln">3</span></div>
+              <div class="mc-line"><span class="mc-ln">4</span><span class="mc-b">app</span><span>.</span><span class="mc-c">get</span><span>(</span><span class="mc-g">'/api'</span></div>
+              <div class="mc-line"><span class="mc-ln">5</span><span class="mc-b">app</span><span>.</span><span class="mc-c">listen</span><span>(3000)</span></div>
+            </div>
+          </div>
+          <div class="project-lang-badge">Node.js</div>
+          <div class="status-dot sd-live">Live</div>
+        </div>
+        <div class="project-info">
+          <div class="project-name">REST API Backend</div>
+          <div class="project-meta">
+            <div class="project-meta-item">📁 <span>18 files</span></div>
+            <div class="project-meta-item">💬 <span>43 messages</span></div>
+            <div class="project-meta-item">🕐 <span>1d ago</span></div>
+          </div>
+          <div class="project-footer">
+            <div class="project-members">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">J</div>
+            </div>
+            <div class="project-actions">
+              <button class="action-btn">⋯</button>
+              <button class="action-btn open">Open →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Project 3 -->
+      <div class="project-card">
+        <div class="project-preview">
+          <div class="project-preview-bg pp-next">
+            <div class="mock-code">
+              <div class="mc-line"><span class="mc-ln">1</span><span class="mc-r">export</span> <span class="mc-r">default</span></div>
+              <div class="mc-line"><span class="mc-ln">2</span><span class="mc-b">async function</span> <span class="mc-c">Page()</span></div>
+              <div class="mc-line"><span class="mc-ln">3</span><span>{</span></div>
+              <div class="mc-line"><span class="mc-ln">4</span><span>&nbsp;&nbsp;</span><span class="mc-r">const</span> <span class="mc-b">data</span> <span>=</span> <span class="mc-r">await</span></div>
+              <div class="mc-line"><span class="mc-ln">5</span><span>&nbsp;&nbsp;&nbsp;</span><span class="mc-c">fetchData()</span></div>
+            </div>
+          </div>
+          <div class="project-lang-badge">Next.js 14</div>
+          <div class="status-dot sd-idle">Idle</div>
+        </div>
+        <div class="project-info">
+          <div class="project-name">SaaS Landing Page</div>
+          <div class="project-meta">
+            <div class="project-meta-item">📁 <span>22 files</span></div>
+            <div class="project-meta-item">💬 <span>61 messages</span></div>
+            <div class="project-meta-item">🕐 <span>3d ago</span></div>
+          </div>
+          <div class="project-footer">
+            <div class="project-members">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">J</div>
+              <div class="member-avatar" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">M</div>
+              <div class="member-avatar" style="background:linear-gradient(135deg,#10B981,#059669)">K</div>
+            </div>
+            <div class="project-actions">
+              <button class="action-btn">⋯</button>
+              <button class="action-btn open">Open →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Project 4 -->
+      <div class="project-card">
+        <div class="project-preview">
+          <div class="project-preview-bg pp-vue">
+            <div class="mock-code">
+              <div class="mc-line"><span class="mc-ln">1</span><span>&lt;</span><span class="mc-c">template</span><span>&gt;</span></div>
+              <div class="mc-line"><span class="mc-ln">2</span><span>&nbsp;&nbsp;&lt;</span><span class="mc-b">div</span> <span class="mc-r">class</span><span>=</span><span class="mc-g">"app"</span><span>&gt;</span></div>
+              <div class="mc-line"><span class="mc-ln">3</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&lt;</span><span class="mc-c">NavBar</span><span>/&gt;</span></div>
+              <div class="mc-line"><span class="mc-ln">4</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&lt;</span><span class="mc-c">RouterView</span><span>/&gt;</span></div>
+              <div class="mc-line"><span class="mc-ln">5</span><span>&nbsp;&nbsp;&lt;/</span><span class="mc-b">div</span><span>&gt;</span></div>
+            </div>
+          </div>
+          <div class="project-lang-badge">Vue 3</div>
+          <div class="status-dot sd-idle">Idle</div>
+        </div>
+        <div class="project-info">
+          <div class="project-name">Inventory Manager</div>
+          <div class="project-meta">
+            <div class="project-meta-item">📁 <span>28 files</span></div>
+            <div class="project-meta-item">💬 <span>54 messages</span></div>
+            <div class="project-meta-item">🕐 <span>5d ago</span></div>
+          </div>
+          <div class="project-footer">
+            <div class="project-members">
+              <div class="member-avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">J</div>
+            </div>
+            <div class="project-actions">
+              <button class="action-btn">⋯</button>
+              <button class="action-btn open">Open →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- New project card -->
+      <div class="new-project-card" onclick="document.getElementById('new-modal').classList.add('show')">
+        <div class="new-icon">+</div>
+        <div class="new-label">New Project</div>
+        <div style="font-size:12px;color:var(--text3);text-align:center;max-width:140px;">Start with AI or choose a template</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- NEW PROJECT MODAL -->
+<div class="modal-overlay" id="new-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <div class="modal-title">New Project</div>
+        <div style="font-size:13px;color:var(--text2);">Choose a template to get started</div>
+      </div>
+      <button onclick="document.getElementById('new-modal').classList.remove('show')" style="background:var(--surface);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;">×</button>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label">Project Name</label>
+      <input class="form-input" type="text" placeholder="my-awesome-app">
+    </div>
+    
+    <div class="form-label" style="margin-bottom:10px;">Template</div>
+    <div class="template-grid">
+      <div class="template-option selected" onclick="selectTemplate(this)">
+        <div class="template-icon">⚛️</div>
+        <div class="template-name">React</div>
+      </div>
+      <div class="template-option" onclick="selectTemplate(this)">
+        <div class="template-icon">▲</div>
+        <div class="template-name">Next.js</div>
+      </div>
+      <div class="template-option" onclick="selectTemplate(this)">
+        <div class="template-icon">💚</div>
+        <div class="template-name">Vue 3</div>
+      </div>
+      <div class="template-option" onclick="selectTemplate(this)">
+        <div class="template-icon">🟢</div>
+        <div class="template-name">Node.js</div>
+      </div>
+      <div class="template-option" onclick="selectTemplate(this)">
+        <div class="template-icon">🐍</div>
+        <div class="template-name">FastAPI</div>
+      </div>
+      <div class="template-option" onclick="selectTemplate(this)">
+        <div class="template-icon">🌀</div>
+        <div class="template-name">Blank</div>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label">Visibility</label>
+      <select class="form-input" style="cursor:pointer;">
+        <option>🔒 Private</option>
+        <option>🌐 Public</option>
+      </select>
+    </div>
+    
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('new-modal').classList.remove('show')">Cancel</button>
+      <button class="btn-create">Create Project →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function selectTemplate(el) {
+    document.querySelectorAll('.template-option').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  
+  document.getElementById('new-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+  
+  // Animate stats on load
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
