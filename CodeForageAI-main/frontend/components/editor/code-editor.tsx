@@ -25,3 +25,5 @@ export function CodeEditor({ defaultValue, language }: Props) {
     />
   );
 }
+
+export { CodeEditor as MonacoEditor };

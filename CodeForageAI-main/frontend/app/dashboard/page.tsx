@@ -1,5 +1,5 @@
-import { RenderTemplatePage } from "@/app/render-template-page";
+import { DashboardPage } from "@/features/dashboard/dashboard-page";
 
 export default function Page() {
-  return <RenderTemplatePage fileName="page-dashboard.html" title="Dashboard" />;
+  return <DashboardPage />;
 }
