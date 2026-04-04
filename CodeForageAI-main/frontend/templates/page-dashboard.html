@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Commerce Dashboard — CodeForage AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --bg2: #0C0C18;
+    --bg3: #0F0F1E;
+    --surface: rgba(255,255,255,0.035);
+    --surface2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.075);
+    --border2: rgba(0,212,255,0.25);
+    --cyan: #00D4FF;
+    --amber: #FFB347;
+    --text: #EEEEF8;
+    --text2: #7878A0;
+    --text3: #3A3A58;
+    --green: #00FF99;
+    --red: #FF4D6D;
+    --purple: #9D7AFF;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* ---- TOP BAR ---- */
+  .editor-topbar {
+    height: 48px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+    z-index: 50;
+  }
+  
+  .tb-logo {
+    padding: 0 16px;
+    border-right: 1px solid var(--border);
+    height: 100%;
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .tb-logo-icon {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--cyan), var(--amber));
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .tb-logo span { color: var(--cyan); }
+  
+  .tb-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    font-size: 13px;
+    color: var(--text2);
+    border-right: 1px solid var(--border);
+    height: 100%;
+  }
+  .tb-breadcrumb span { color: var(--text); font-weight: 500; }
+  .tb-sep { color: var(--text3); }
+  
+  .tb-tabs {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+  }
+  .tb-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 100%;
+    font-size: 12px;
+    color: var(--text2);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+    position: relative;
+  }
+  .tb-tab:hover { background: var(--surface); color: var(--text); }
+  .tb-tab.active {
+    background: rgba(0,212,255,0.05);
+    color: var(--text);
+  }
+  .tb-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: var(--cyan);
+  }
+  .tab-close {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--text3);
+    transition: all 0.15s;
+  }
+  .tab-close:hover { background: var(--surface2); color: var(--text2); }
+  
+  .tb-actions {
+    padding: 0 14px;
+    height: 100%;
+    display: flex; align-items: center; gap: 8px;
+    border-left: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  
+  .tb-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-family: 'Geist', sans-serif;
+  }
+  .tb-btn:hover { background: var(--surface); color: var(--text); }
+  .tb-btn.deploy {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: #080810;
+    font-weight: 600;
+  }
+  .tb-btn.deploy:hover { background: #00EEFF; }
+  
+  .status-indicator {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .status-indicator::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  
+  /* ---- BODY LAYOUT ---- */
+  .editor-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  
+  /* ---- ACTIVITY BAR ---- */
+  .activity-bar {
+    width: 44px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .ab-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text3);
+    border: none;
+    background: transparent;
+    position: relative;
+  }
+  .ab-btn:hover { background: var(--surface); color: var(--text2); }
+  .ab-btn.active { background: rgba(0,212,255,0.1); color: var(--cyan); }
+  .ab-btn .tooltip {
+    position: absolute;
+    left: calc(100% + 8px);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  .ab-btn:hover .tooltip { opacity: 1; }
+  
+  /* ---- FILE TREE ---- */
+  .file-panel {
+    width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .panel-actions {
+    display: flex; gap: 2px;
+  }
+  .pa-btn {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none; background: transparent;
+  }
+  .pa-btn:hover { background: var(--surface); color: var(--text2); }
+  
+  .file-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text3) transparent;
+  }
+  
+  .tree-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 14px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+  }
+  .tree-item:hover { background: var(--surface); color: var(--text); }
+  .tree-item.active { background: rgba(0,212,255,0.06); color: var(--text); }
+  .tree-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--cyan); }
+  
+  .tree-folder { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .tree-icon { flex-shrink: 0; width: 14px; text-align: center; }
+  .tree-name { flex: 1; }
+  .tree-badge {
+    font-size: 9px;
+    background: rgba(0,212,255,0.1);
+    color: var(--cyan);
+    padding: 1px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  
+  /* ---- CODE EDITOR ---- */
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #090912;
+  }
+  
+  .editor-tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  .editor-tab-bar::-webkit-scrollbar { display: none; }
+  
+  .editor-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 36px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text3);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .editor-tab:hover { background: var(--surface); color: var(--text2); }
+  .editor-tab.active { background: #090912; color: var(--text); }
+  .editor-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--cyan); }
+  
+  .editor-tab .file-modified {
+    width: 6px; height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .code-wrapper {
+    flex: 1;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text3) transparent;
+  }
+  
+  .code-editor {
+    display: flex;
+    min-height: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+  .line-numbers {
+    padding: 20px 16px;
+    color: var(--text3);
+    text-align: right;
+    user-select: none;
+    border-right: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+    min-width: 52px;
+    flex-shrink: 0;
+  }
+  .line-num { display: block; font-size: 12px; }
+  .line-num.active { color: var(--text2); }
+  
+  .code-lines { padding: 20px 24px; flex: 1; }
+  .code-line { display: block; white-space: pre; }
+  .code-line:hover { background: rgba(255,255,255,0.02); }
+  .code-line.active-line { background: rgba(0,212,255,0.04); border-left: 2px solid rgba(0,212,255,0.3); margin-left: -2px; padding-left: 2px; }
+  
+  /* Syntax */
+  .k { color: #C792EA; } /* keyword */
+  .f { color: #82AAFF; } /* function */
+  .s { color: #C3E88D; } /* string */
+  .c { color: #697098; font-style: italic; } /* comment */
+  .n { color: #FFCB6B; } /* number */
+  .t { color: #00D4FF; } /* type/jsx tag */
+  .a { color: #FFB347; } /* attribute */
+  .p { color: #EEEEF8; } /* punctuation */
+  .v { color: #F07178; } /* variable */
+  
+  /* ---- BOTTOM BAR ---- */
+  .bottom-bar {
+    height: 22px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .bb-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .bb-item:hover { color: var(--text2); }
+  .bb-sep { width: 1px; height: 12px; background: var(--border); }
+  .bb-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+  /* ---- AI CHAT PANEL ---- */
+  .chat-panel {
+    width: 340px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  
+  .chat-top {
+    padding: 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-shrink: 0;
+  }
+  .chat-tab {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+    font-family: 'Geist', sans-serif;
+    border-bottom: 2px solid transparent;
+  }
+  .chat-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  .chat-tab:hover { color: var(--text2); }
+  
+  .chat-session-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.15);
+    flex-shrink: 0;
+  }
+  .ai-status-dot {
+    width: 7px; height: 7px;
+    background: var(--cyan);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .ai-session-name { font-size: 12px; color: var(--text2); font-weight: 400; flex: 1; }
+  .ai-model-badge {
+    font-size: 10px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.15);
+    color: var(--cyan);
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text3) transparent;
+  }
+  
+  .msg-group { display: flex; flex-direction: column; gap: 4px; }
+  
+  .msg-user {
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.12);
+    border-radius: 12px 12px 4px 12px;
+    padding: 10px 13px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    align-self: flex-end;
+    max-width: 90%;
+  }
+  
+  .msg-ai {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px 12px 12px 12px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+  .msg-ai-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+  .msg-ai-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .msg-code-block {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    overflow-x: auto;
+    position: relative;
+  }
+  .msg-code-block .lang-badge {
+    position: absolute;
+    top: 6px; right: 8px;
+    font-size: 9px;
+    color: var(--text3);
+  }
+  
+  .msg-file-generated {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.15);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+  }
+  .mfg-icon { font-size: 14px; }
+  .mfg-info { flex: 1; }
+  .mfg-path { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .mfg-meta { color: var(--text3); font-size: 10px; margin-top: 1px; }
+  
+  .msg-thinking {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text3);
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .thinking-dots {
+    display: flex; gap: 3px;
+  }
+  .thinking-dot {
+    width: 5px; height: 5px;
+    background: var(--text3);
+    border-radius: 50%;
+    animation: thinkBounce 1.2s ease-in-out infinite;
+  }
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes thinkBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+  
+  /* Chat Input */
+  .chat-input-zone {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .chat-input-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: all 0.2s;
+  }
+  .chat-input-box:focus-within { border-color: var(--border2); box-shadow: 0 0 0 3px rgba(0,212,255,0.06); }
+  
+  .chat-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    resize: none;
+    outline: none;
+    min-height: 20px;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  .chat-textarea::placeholder { color: var(--text3); }
+  
+  .chat-input-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-hints { display: flex; gap: 4px; }
+  .chat-hint {
+    font-size: 10px;
+    padding: 3px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chat-hint:hover { color: var(--text2); border-color: var(--border2); }
+  
+  .send-btn {
+    width: 30px; height: 30px;
+    background: var(--cyan);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: #080810;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: #00EEFF; box-shadow: 0 4px 16px rgba(0,212,255,0.3); }
+  
+  /* ---- PREVIEW PANEL (Right side split) ---- */
+  .preview-panel {
+    width: 360px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 36px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .preview-dots { display: flex; gap: 4px; }
+  .pd { width: 8px; height: 8px; border-radius: 50%; }
+  .pd-r { background: #FF5F56; }
+  .pd-y { background: #FFBD2E; }
+  .pd-g { background: #27C93F; }
+  
+  .preview-url {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    display: flex; align-items: center; gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .preview-url::before { content: '🔒'; font-size: 8px; }
+  
+  .preview-status {
+    font-size: 10px;
+    color: var(--green);
+    display: flex; align-items: center; gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .preview-status::before { content: '●'; animation: pulse 2s infinite; }
+  
+  .preview-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+  }
+  
+  /* Mock app inside preview */
+  .mock-app {
+    width: 100%; height: 100%;
+    background: #f8f9fb;
+    font-family: system-ui, sans-serif;
+    overflow-y: auto;
+  }
+  .mock-app-nav {
+    background: #1a1a2e;
+    padding: 0 20px;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .mock-nav-logo { color: #fff; font-weight: 700; font-size: 15px; }
+  .mock-nav-links { display: flex; gap: 16px; }
+  .mock-nav-link { color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; }
+  .mock-nav-btn { background: #00D4FF; color: #1a1a2e; border: none; padding: 5px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+  
+  .mock-app-body { padding: 20px; }
+  .mock-hero { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 12px; padding: 24px; margin-bottom: 16px; color: white; }
+  .mock-hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .mock-hero p { font-size: 12px; opacity: 0.7; margin-bottom: 14px; }
+  .mock-hero-btn { background: #00D4FF; color: #1a1a2e; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  
+  .mock-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .mock-card { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .mock-card-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .mock-card-val { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+  .mock-card-ch { font-size: 11px; color: #22c55e; margin-top: 2px; }
+  
+  .mock-table { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .mock-table-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 10px; }
+  .mock-tr { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f0f0f0; font-size: 11px; color: #333; }
+  .mock-badge { padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 600; }
+  .mb-green { background: #dcfce7; color: #166534; }
+  .mb-amber { background: #fef9c3; color: #854d0e; }
+
+  /* Resize handle */  
+  .resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 2px;
+    height: 40px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+  .resize-handle:hover::after { background: var(--cyan); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="editor-topbar">
+  <a class="tb-logo" href="#">
+    <div class="tb-logo-icon">⚡</div>
+    Code<span>Forage</span>
+  </a>
+  
+  <div class="tb-breadcrumb">
+    <span style="color:var(--text2)">Projects</span>
+    <span class="tb-sep">/</span>
+    <span>E-Commerce Dashboard</span>
+  </div>
+  
+  <div class="tb-tabs">
+    <div class="tb-tab">
+      <span>main.tsx</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="tb-tab active">
+      <span>App.tsx</span>
+      <div class="file-modified"></div>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="tb-tab">
+      <span>Dashboard.tsx</span>
+      <span class="tab-close">×</span>
+    </div>
+    <div class="tb-tab">
+      <span>Sidebar.tsx</span>
+      <span class="tab-close">×</span>
+    </div>
+  </div>
+  
+  <div class="tb-actions">
+    <div class="status-indicator">Running</div>
+    <button class="tb-btn">⚙ Settings</button>
+    <button class="tb-btn">⬡ Share</button>
+    <button class="tb-btn deploy">▷ Deploy</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="editor-body">
+
+  <!-- Activity Bar -->
+  <div class="activity-bar">
+    <button class="ab-btn active">
+      📁
+      <span class="tooltip">Explorer</span>
+    </button>
+    <button class="ab-btn">
+      🔍
+      <span class="tooltip">Search</span>
+    </button>
+    <button class="ab-btn">
+      🔀
+      <span class="tooltip">Source Control</span>
+    </button>
+    <button class="ab-btn">
+      🧩
+      <span class="tooltip">Extensions</span>
+    </button>
+    <div style="flex:1;"></div>
+    <button class="ab-btn">
+      ⚙
+      <span class="tooltip">Settings</span>
+    </button>
+  </div>
+
+  <!-- File Panel -->
+  <div class="file-panel">
+    <div class="panel-header">
+      <span class="panel-title">Explorer</span>
+      <div class="panel-actions">
+        <button class="pa-btn" title="New File">+</button>
+        <button class="pa-btn" title="New Folder">⊞</button>
+        <button class="pa-btn" title="Refresh">↻</button>
+      </div>
+    </div>
+    
+    <div class="file-tree">
+      <div class="tree-item tree-folder">▾ E-Commerce Dashboard</div>
+      
+      <div class="tree-item tree-folder" style="padding-left:24px">▾ src</div>
+      <div class="tree-item" style="padding-left:36px">
+        <span class="tree-icon">⚛</span><span class="tree-name">main.tsx</span>
+      </div>
+      <div class="tree-item active" style="padding-left:36px">
+        <span class="tree-icon">⚛</span><span class="tree-name">App.tsx</span>
+        <span class="tree-badge">M</span>
+      </div>
+      <div class="tree-item" style="padding-left:36px">
+        <span class="tree-icon">🎨</span><span class="tree-name">index.css</span>
+      </div>
+      
+      <div class="tree-item tree-folder" style="padding-left:24px;margin-top:4px">▾ components</div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">Dashboard.tsx</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">Sidebar.tsx</span>
+        <span class="tree-badge">N</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">Header.tsx</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">DataTable.tsx</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">StatsCard.tsx</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">⚛</span><span class="tree-name">Chart.tsx</span>
+        <span class="tree-badge">N</span>
+      </div>
+      
+      <div class="tree-item tree-folder" style="padding-left:24px;margin-top:4px">▾ hooks</div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">📄</span><span class="tree-name">useAuth.ts</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">📄</span><span class="tree-name">useData.ts</span>
+      </div>
+      
+      <div class="tree-item tree-folder" style="padding-left:24px;margin-top:4px">▾ lib</div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">📄</span><span class="tree-name">api.ts</span>
+      </div>
+      <div class="tree-item" style="padding-left:48px">
+        <span class="tree-icon">📄</span><span class="tree-name">utils.ts</span>
+      </div>
+      
+      <div class="tree-item" style="padding-left:24px;margin-top:8px">
+        <span class="tree-icon">📦</span><span class="tree-name">package.json</span>
+      </div>
+      <div class="tree-item" style="padding-left:24px">
+        <span class="tree-icon">⚙</span><span class="tree-name">vite.config.ts</span>
+      </div>
+      <div class="tree-item" style="padding-left:24px">
+        <span class="tree-icon">🎨</span><span class="tree-name">tailwind.config.js</span>
+      </div>
+      <div class="tree-item" style="padding-left:24px">
+        <span class="tree-icon">📄</span><span class="tree-name">tsconfig.json</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code Editor -->
+  <div class="editor-area">
+    <div class="editor-tab-bar">
+      <div class="editor-tab">main.tsx</div>
+      <div class="editor-tab active">App.tsx <div class="file-modified"></div></div>
+      <div class="editor-tab">Dashboard.tsx</div>
+      <div class="editor-tab">Sidebar.tsx</div>
+    </div>
+    
+    <div class="code-wrapper">
+      <div class="code-editor">
+        <div class="line-numbers">
+          <span class="line-num">1</span>
+          <span class="line-num">2</span>
+          <span class="line-num">3</span>
+          <span class="line-num">4</span>
+          <span class="line-num">5</span>
+          <span class="line-num active">6</span>
+          <span class="line-num">7</span>
+          <span class="line-num">8</span>
+          <span class="line-num">9</span>
+          <span class="line-num">10</span>
+          <span class="line-num">11</span>
+          <span class="line-num">12</span>
+          <span class="line-num">13</span>
+          <span class="line-num">14</span>
+          <span class="line-num">15</span>
+          <span class="line-num">16</span>
+          <span class="line-num">17</span>
+          <span class="line-num">18</span>
+          <span class="line-num">19</span>
+          <span class="line-num">20</span>
+          <span class="line-num">21</span>
+          <span class="line-num">22</span>
+          <span class="line-num">23</span>
+          <span class="line-num">24</span>
+          <span class="line-num">25</span>
+          <span class="line-num">26</span>
+          <span class="line-num">27</span>
+          <span class="line-num">28</span>
+          <span class="line-num">29</span>
+          <span class="line-num">30</span>
+          <span class="line-num">31</span>
+          <span class="line-num">32</span>
+          <span class="line-num">33</span>
+          <span class="line-num">34</span>
+          <span class="line-num">35</span>
+          <span class="line-num">36</span>
+          <span class="line-num">37</span>
+          <span class="line-num">38</span>
+          <span class="line-num">39</span>
+          <span class="line-num">40</span>
+        </div>
+        <div class="code-lines">
+          <span class="code-line"><span class="c">// ⚡ Generated by CodeForage AI — E-Commerce Dashboard</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="p">{ </span><span class="f">useState</span><span class="p">, </span><span class="f">useEffect</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'react'</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="p">{ </span><span class="t">BrowserRouter</span><span class="p">, </span><span class="t">Routes</span><span class="p">, </span><span class="t">Route</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'react-router-dom'</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="p">{ </span><span class="t">Dashboard</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'./components/Dashboard'</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="p">{ </span><span class="t">Sidebar</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'./components/Sidebar'</span></span>
+          <span class="code-line active-line"><span class="k">import</span> <span class="p">{ </span><span class="t">Header</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'./components/Header'</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="p">{ </span><span class="f">useAuth</span><span class="p"> }</span> <span class="k">from</span> <span class="s">'./hooks/useAuth'</span></span>
+          <span class="code-line"><span class="k">import</span> <span class="s">'./index.css'</span></span>
+          <span class="code-line"></span>
+          <span class="code-line"><span class="k">export default function</span> <span class="f">App</span><span class="p">() {</span></span>
+          <span class="code-line"><span class="p">  </span><span class="k">const</span> <span class="p">{ </span><span class="v">user</span><span class="p">, </span><span class="v">isLoading</span><span class="p">, </span><span class="v">logout</span><span class="p"> } = </span><span class="f">useAuth</span><span class="p">()</span></span>
+          <span class="code-line"><span class="p">  </span><span class="k">const</span> <span class="p">[</span><span class="v">sidebarOpen</span><span class="p">, </span><span class="v">setSidebarOpen</span><span class="p">] = </span><span class="f">useState</span><span class="p">(</span><span class="k">true</span><span class="p">)</span></span>
+          <span class="code-line"></span>
+          <span class="code-line"><span class="p">  </span><span class="f">useEffect</span><span class="p">(() => {</span></span>
+          <span class="code-line"><span class="p">    </span><span class="c">// Redirect to login if unauthenticated</span></span>
+          <span class="code-line"><span class="p">    </span><span class="k">if</span> <span class="p">(!</span><span class="v">isLoading</span> <span class="p">&& !</span><span class="v">user</span><span class="p">) {</span></span>
+          <span class="code-line"><span class="p">      </span><span class="v">window</span><span class="p">.</span><span class="v">location</span><span class="p">.</span><span class="v">href</span> <span class="p">= </span><span class="s">'/login'</span></span>
+          <span class="code-line"><span class="p">    }</span></span>
+          <span class="code-line"><span class="p">  }, [</span><span class="v">user</span><span class="p">, </span><span class="v">isLoading</span><span class="p">])</span></span>
+          <span class="code-line"></span>
+          <span class="code-line"><span class="p">  </span><span class="k">if</span> <span class="p">(</span><span class="v">isLoading</span><span class="p">) </span><span class="k">return</span> <span class="p">&lt;</span><span class="t">LoadingScreen</span> <span class="p">/&gt;</span></span>
+          <span class="code-line"></span>
+          <span class="code-line"><span class="p">  </span><span class="k">return</span> <span class="p">(</span></span>
+          <span class="code-line"><span class="p">    &lt;</span><span class="t">BrowserRouter</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">      &lt;</span><span class="t">div</span> <span class="a">className</span><span class="p">=</span><span class="s">"flex h-screen bg-gray-950 overflow-hidden"</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">        &lt;</span><span class="t">Sidebar</span></span>
+          <span class="code-line"><span class="p">          </span><span class="a">isOpen</span><span class="p">={</span><span class="v">sidebarOpen</span><span class="p">}</span></span>
+          <span class="code-line"><span class="p">          </span><span class="a">onToggle</span><span class="p">={() => </span><span class="f">setSidebarOpen</span><span class="p">(</span><span class="v">o</span> <span class="p">=> !</span><span class="v">o</span><span class="p">)}</span></span>
+          <span class="code-line"><span class="p">        /&gt;</span></span>
+          <span class="code-line"><span class="p">        &lt;</span><span class="t">div</span> <span class="a">className</span><span class="p">=</span><span class="s">"flex-1 flex flex-col overflow-hidden"</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">          &lt;</span><span class="t">Header</span> <span class="a">user</span><span class="p">={</span><span class="v">user</span><span class="p">} </span><span class="a">onLogout</span><span class="p">={</span><span class="v">logout</span><span class="p">} /&gt;</span></span>
+          <span class="code-line"><span class="p">          &lt;</span><span class="t">Routes</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">            &lt;</span><span class="t">Route</span> <span class="a">path</span><span class="p">=</span><span class="s">"/"</span> <span class="a">element</span><span class="p">={&lt;</span><span class="t">Dashboard</span><span class="p"> /&gt;} /&gt;</span></span>
+          <span class="code-line"><span class="p">            &lt;</span><span class="t">Route</span> <span class="a">path</span><span class="p">=</span><span class="s">"/orders"</span> <span class="a">element</span><span class="p">={&lt;</span><span class="t">Orders</span><span class="p"> /&gt;} /&gt;</span></span>
+          <span class="code-line"><span class="p">            &lt;</span><span class="t">Route</span> <span class="a">path</span><span class="p">=</span><span class="s">"/products"</span> <span class="a">element</span><span class="p">={&lt;</span><span class="t">Products</span><span class="p"> /&gt;} /&gt;</span></span>
+          <span class="code-line"><span class="p">          &lt;/</span><span class="t">Routes</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">        &lt;/</span><span class="t">div</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">      &lt;/</span><span class="t">div</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">    &lt;/</span><span class="t">BrowserRouter</span><span class="p">&gt;</span></span>
+          <span class="code-line"><span class="p">  )</span></span>
+          <span class="code-line"><span class="p">}</span></span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bottom-bar">
+      <div class="bb-item">⚡ TypeScript</div>
+      <div class="bb-sep"></div>
+      <div class="bb-item">UTF-8</div>
+      <div class="bb-sep"></div>
+      <div class="bb-item">JSX</div>
+      <div class="bb-sep"></div>
+      <div class="bb-item" style="color:var(--amber)">⚠ 1 warning</div>
+      <div class="bb-right">
+        <div class="bb-item">Ln 6, Col 28</div>
+        <div class="bb-sep"></div>
+        <div class="bb-item">Spaces: 2</div>
+        <div class="bb-sep"></div>
+        <div class="bb-item" style="color:var(--green)">● GPT-4o-mini</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Chat Panel -->
+  <div class="chat-panel">
+    <div class="chat-top">
+      <button class="chat-tab active">💬 AI Chat</button>
+      <button class="chat-tab">📝 History</button>
+      <button class="chat-tab">📊 Usage</button>
+    </div>
+    
+    <div class="chat-session-info">
+      <div class="ai-status-dot"></div>
+      <span class="ai-session-name">Session: E-Commerce Build</span>
+      <span class="ai-model-badge">gpt-4o-mini</span>
+    </div>
+    
+    <div class="chat-messages">
+      <!-- Message 1 -->
+      <div class="msg-group">
+        <div class="msg-user">
+          Create a Next.js e-commerce dashboard with sidebar navigation, stats cards, and a data table showing recent orders
+        </div>
+      </div>
+      
+      <!-- Message 2 -->
+      <div class="msg-group">
+        <div class="msg-ai">
+          <div class="msg-ai-header">
+            <div class="ai-status-dot" style="animation:none;background:var(--green)"></div>
+            <span class="msg-ai-label">CodeForage AI</span>
+          </div>
+          I'll build your e-commerce dashboard with a complete component structure. Setting up the file architecture now.
+          <div class="msg-file-generated">
+            <span class="mfg-icon">✓</span>
+            <div class="mfg-info">
+              <div class="mfg-path">src/components/Dashboard.tsx</div>
+              <div class="mfg-meta">Created • +127 lines • Tailwind CSS</div>
+            </div>
+          </div>
+          <div class="msg-file-generated">
+            <span class="mfg-icon">✓</span>
+            <div class="mfg-info">
+              <div class="mfg-path">src/components/StatsCard.tsx</div>
+              <div class="mfg-meta">Created • +48 lines</div>
+            </div>
+          </div>
+          <div class="msg-file-generated">
+            <span class="mfg-icon">✓</span>
+            <div class="mfg-info">
+              <div class="mfg-path">src/components/DataTable.tsx</div>
+              <div class="mfg-meta">Created • +94 lines</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Message 3 -->
+      <div class="msg-group">
+        <div class="msg-user">
+          Add a dark sidebar with user avatar and navigation links for Orders, Products, Analytics, Settings
+        </div>
+      </div>
+      
+      <!-- Message 4 -->
+      <div class="msg-group">
+        <div class="msg-ai">
+          <div class="msg-ai-header">
+            <div class="ai-status-dot" style="animation:none;background:var(--green)"></div>
+            <span class="msg-ai-label">CodeForage AI</span>
+          </div>
+          Added the sidebar component. Here's the key structure:
+          <div class="msg-code-block">
+            <span class="lang-badge">tsx</span>
+<span style="color:#C792EA">export function</span> <span style="color:#82AAFF">Sidebar</span>() {<br>
+&nbsp;&nbsp;<span style="color:#C792EA">return</span> (<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span style="color:#00D4FF">nav</span> <span style="color:#FFB347">className</span>=<span style="color:#C3E88D">"sidebar"</span>&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span style="color:#00D4FF">NavLinks</span> <span style="color:#FFB347">items</span>={nav} /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span style="color:#00D4FF">nav</span>&gt;<br>
+&nbsp;&nbsp;)<br>
+}
+          </div>
+          <div class="msg-file-generated">
+            <span class="mfg-icon">✓</span>
+            <div class="mfg-info">
+              <div class="mfg-path">src/components/Sidebar.tsx</div>
+              <div class="mfg-meta">Created • +84 lines • Responsive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Message 5 -->
+      <div class="msg-group">
+        <div class="msg-user">
+          Add a revenue chart using recharts with monthly data
+        </div>
+      </div>
+      
+      <!-- AI Thinking -->
+      <div class="msg-group">
+        <div class="msg-ai">
+          <div class="msg-ai-header">
+            <div class="ai-status-dot"></div>
+            <span class="msg-ai-label">CodeForage AI</span>
+          </div>
+          <div class="msg-thinking">
+            <div class="thinking-dots">
+              <div class="thinking-dot"></div>
+              <div class="thinking-dot"></div>
+              <div class="thinking-dot"></div>
+            </div>
+            Generating Chart.tsx with recharts...
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Input -->
+    <div class="chat-input-zone">
+      <div class="chat-input-box">
+        <textarea class="chat-textarea" rows="2" placeholder="Ask AI to modify your code..."></textarea>
+        <div class="chat-input-actions">
+          <div class="chat-hints">
+            <span class="chat-hint">@file</span>
+            <span class="chat-hint">/explain</span>
+            <span class="chat-hint">/fix</span>
+          </div>
+          <button class="send-btn">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Panel -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-dots">
+        <div class="pd pd-r"></div>
+        <div class="pd pd-y"></div>
+        <div class="pd pd-g"></div>
+      </div>
+      <div class="preview-url">preview.localhost/app-x7k2p</div>
+      <span class="preview-status">Live</span>
+    </div>
+    
+    <div class="preview-content">
+      <div class="mock-app">
+        <div class="mock-app-nav">
+          <div class="mock-nav-logo">🛒 ShopDash</div>
+          <div class="mock-nav-links">
+            <span class="mock-nav-link">Orders</span>
+            <span class="mock-nav-link">Products</span>
+            <span class="mock-nav-link">Analytics</span>
+          </div>
+          <button class="mock-nav-btn">Profile</button>
+        </div>
+        <div class="mock-app-body">
+          <div class="mock-hero">
+            <h2>Welcome back, Admin 👋</h2>
+            <p>Here's your store performance today</p>
+            <button class="mock-hero-btn">View Reports</button>
+          </div>
+          <div class="mock-cards">
+            <div class="mock-card">
+              <div class="mock-card-label">Revenue</div>
+              <div class="mock-card-val">₹84.2k</div>
+              <div class="mock-card-ch">↑ +12% this month</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Orders</div>
+              <div class="mock-card-val">1,247</div>
+              <div class="mock-card-ch">↑ +8% this week</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Customers</div>
+              <div class="mock-card-val">4.8k</div>
+              <div class="mock-card-ch">↑ +23 today</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Avg. Order</div>
+              <div class="mock-card-val">₹675</div>
+              <div class="mock-card-ch" style="color:#f97316">↓ -3% vs last month</div>
+            </div>
+          </div>
+          <div class="mock-table">
+            <div class="mock-table-title">Recent Orders</div>
+            <div class="mock-tr">
+              <span>#ORD-2841</span>
+              <span>Priya Sharma</span>
+              <span>₹1,240</span>
+              <span class="mock-badge mb-green">Delivered</span>
+            </div>
+            <div class="mock-tr">
+              <span>#ORD-2840</span>
+              <span>Rahul Verma</span>
+              <span>₹890</span>
+              <span class="mock-badge mb-amber">Pending</span>
+            </div>
+            <div class="mock-tr">
+              <span>#ORD-2839</span>
+              <span>Ananya Singh</span>
+              <span>₹2,100</span>
+              <span class="mock-badge mb-green">Delivered</span>
+            </div>
+            <div class="mock-tr">
+              <span>#ORD-2838</span>
+              <span>Karan Mehta</span>
+              <span>₹560</span>
+              <span class="mock-badge mb-amber">Processing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.editor-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.chat-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.tree-item:not(.tree-folder)').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.tree-item').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  
+  // Send message simulation
+  document.querySelector('.send-btn').addEventListener('click', function() {
+    const ta = document.querySelector('.chat-textarea');
+    const val = ta.value.trim();
+    if (!val) return;
+    const messages = document.querySelector('.chat-messages');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg-group';
+    userMsg.innerHTML = `<div class="msg-user">${val}</div>`;
+    messages.appendChild(userMsg);
+    ta.value = '';
+    
+    // Thinking
+    setTimeout(() => {
+      const thinkMsg = document.createElement('div');
+      thinkMsg.className = 'msg-group';
+      thinkMsg.innerHTML = `<div class="msg-ai"><div class="msg-ai-header"><div class="ai-status-dot"></div><span class="msg-ai-label">CodeForage AI</span></div><div class="msg-thinking"><div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>Processing your request...</div></div>`;
+      messages.appendChild(thinkMsg);
+      messages.scrollTop = messages.scrollHeight;
+    }, 300);
+  });
+  
+  // Enter to send
+  document.querySelector('.chat-textarea').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      document.querySelector('.send-btn').click();
+    }
+  });
+</script>
+</body>
+</html>
