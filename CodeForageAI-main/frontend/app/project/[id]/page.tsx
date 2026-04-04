@@ -1,6 +1,6 @@
-import { EditorPage } from "@/features/editor/editor-page";
+import { RenderTemplatePage } from "@/app/render-template-page";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return <EditorPage projectId={id} />;
+  await params;
+  return <RenderTemplatePage fileName="page-editor.html" title="Project Editor" />;
 }
