@@ -145,6 +145,8 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .build();
 
             subscriptionRepository.save(sub);
+            user.setPlan(plan);
+            userRepository.save(user);
             log.info("{} event=verify_payment status=success correlationId={} userId={} planId={} orderId={} paymentId={} subscriptionId={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), sub.getId());
             paymentMetricsTracker.recordVerifySuccess();
@@ -152,6 +154,14 @@ public class RazorpayServiceImpl implements RazorpayService {
         } catch (DataIntegrityViolationException e) {
             if (isDuplicatePaymentIdViolation(e)) {
                 // Idempotent at DB level: unique payment_id already persisted by concurrent request.
+                if (planId != null) {
+                    userRepository.findById(userId).ifPresent(user ->
+                            planRepository.findById(planId).ifPresent(plan -> {
+                                user.setPlan(plan);
+                                userRepository.save(user);
+                            })
+                    );
+                }
                 log.info("{} event=verify_payment status=idempotent_duplicate correlationId={} userId={} planId={} orderId={} paymentId={}",
                         PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
                 paymentMetricsTracker.recordVerifySuccess();

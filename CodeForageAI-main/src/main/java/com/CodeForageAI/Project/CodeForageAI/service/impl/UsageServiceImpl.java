@@ -23,9 +23,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UsageServiceImpl implements UsageService {
 
-    private static final int FREE_MAX_TOKENS_PER_DAY = 50_000;
+    private static final int FREE_MAX_TOKENS_PER_MONTH = 50_000;
     private static final int FREE_MAX_PROJECTS = 3;
     private static final int FREE_MAX_PREVIEWS = 1;
+    private static final long LEGACY_UNLIMITED_SENTINEL = Integer.MAX_VALUE;
 
     private final UserRepository userRepository;
     private final UsageLogRepository usageLogRepository;
@@ -45,7 +46,7 @@ public class UsageServiceImpl implements UsageService {
                 ? Integer.MAX_VALUE
                 : (int) usedTokensTodayLong;
 
-        int tokensLimit = resolveTokenLimit(plan);
+        int tokensLimit = resolveMonthlyTokenLimit(plan);
         int previewsLimit = resolvePreviewLimit(plan);
         List<Long> projectIds = projectRepository.findAllAccessibleByUser(userId).stream()
                 .map(Project::getId)
@@ -66,13 +67,13 @@ public class UsageServiceImpl implements UsageService {
         Plan plan = user.getPlan();
 
         String planName = plan == null ? PlanType.FREE.name() : plan.getName().name();
-        int tokenLimit = resolveTokenLimit(plan);
+        int tokenLimit = resolveMonthlyTokenLimit(plan);
         int maxProjects = (plan != null && plan.getMaxProjects() != null)
                 ? plan.getMaxProjects()
                 : FREE_MAX_PROJECTS;
         boolean unlimitedAi = plan != null
                 && plan.getName() == PlanType.PRO
-                && (plan.getMaxTokensPerMonth() == null || plan.getMaxTokensPerMonth() < 0);
+                && isUnlimited(plan.getMaxTokensPerMonth());
 
         return new PlanLimitsResponse(
                 planName,
@@ -87,11 +88,11 @@ public class UsageServiceImpl implements UsageService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
     }
 
-    private int resolveTokenLimit(Plan plan) {
+    private int resolveMonthlyTokenLimit(Plan plan) {
         if (plan == null || plan.getMaxTokensPerMonth() == null) {
-            return FREE_MAX_TOKENS_PER_DAY;
+            return FREE_MAX_TOKENS_PER_MONTH;
         }
-        if (plan.getMaxTokensPerMonth() < 0) {
+        if (isUnlimited(plan.getMaxTokensPerMonth())) {
             return Integer.MAX_VALUE;
         }
         return plan.getMaxTokensPerMonth() > Integer.MAX_VALUE
@@ -104,5 +105,11 @@ public class UsageServiceImpl implements UsageService {
             return FREE_MAX_PREVIEWS;
         }
         return plan.getMaxConcurrentPreviews();
+    }
+
+    private boolean isUnlimited(Long maxTokensPerMonth) {
+        return maxTokensPerMonth == null
+                || maxTokensPerMonth < 0
+                || maxTokensPerMonth >= LEGACY_UNLIMITED_SENTINEL;
     }
 }

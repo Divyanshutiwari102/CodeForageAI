@@ -51,6 +51,10 @@ spring:
 
 jwt:
   secret-key: ${JWT_SECRET:CodeForageAISecretKey2024XYZabcdefghijklmnopqrstuvwxyz0123456789AB}
+auth:
+  cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
+    same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
 
 minio:
   endpoint: http://localhost:9000
@@ -82,6 +86,7 @@ qdrant:
   collection-name: codeforageai-files
 
 kubernetes:
+  enabled: ${KUBERNETES_ENABLED:false}
   ingress-domain: preview.localhost
   preview-image: node:20-alpine
   minio-endpoint: http://localhost:9000

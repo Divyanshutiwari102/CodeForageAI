@@ -125,6 +125,7 @@ export async function streamMessage(
     try {
       const response = await fetch(`${base}/chat/stream`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

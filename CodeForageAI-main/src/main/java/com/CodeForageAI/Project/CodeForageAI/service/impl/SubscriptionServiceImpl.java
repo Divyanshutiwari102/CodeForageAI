@@ -7,6 +7,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.subscription.PortalResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.subscription.SubscriptionResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.Plan;
 import com.CodeForageAI.Project.CodeForageAI.enums.PlanType;
+import com.CodeForageAI.Project.CodeForageAI.enums.SubscriptionStatus;
 import com.CodeForageAI.Project.CodeForageAI.repository.SubscriptionRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                         subscription.getCurrentPeriodEnd(),
                         0L
                 ))
-                .orElse(null);
+                .orElseGet(() -> new SubscriptionResponse(
+                        new PlanResponse(
+                                null,
+                                PlanType.FREE.name(),
+                                3,
+                                50_000,
+                                false,
+                                "free"
+                        ),
+                        SubscriptionStatus.ACTIVE.name(),
+                        null,
+                        0L
+                ));
     }
 
     @Override

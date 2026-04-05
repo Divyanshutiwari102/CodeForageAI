@@ -32,6 +32,7 @@ public class QuotaServiceImpl implements QuotaService {
     // Default FREE plan limits when no plan is assigned
     private static final int FREE_MAX_PROJECTS = 3;
     private static final long FREE_MAX_TOKENS_PER_MONTH = 50_000L;
+    private static final long LEGACY_UNLIMITED_SENTINEL = Integer.MAX_VALUE;
 
     UserRepository userRepository;
     ProjectRepository projectRepository;
@@ -72,7 +73,7 @@ public class QuotaServiceImpl implements QuotaService {
         Plan plan = user.getPlan();
 
         // -1 or null maxTokensPerMonth on a PRO plan = unlimited
-        if (plan != null && (plan.getMaxTokensPerMonth() == null || plan.getMaxTokensPerMonth() < 0)) {
+        if (plan != null && isUnlimited(plan.getMaxTokensPerMonth())) {
             return;
         }
 
@@ -109,5 +110,11 @@ public class QuotaServiceImpl implements QuotaService {
                 .atDay(1)
                 .atStartOfDay()
                 .toInstant(ZoneOffset.UTC);
+    }
+
+    private boolean isUnlimited(Long maxTokensPerMonth) {
+        return maxTokensPerMonth == null
+                || maxTokensPerMonth < 0
+                || maxTokensPerMonth >= LEGACY_UNLIMITED_SENTINEL;
     }
 }
