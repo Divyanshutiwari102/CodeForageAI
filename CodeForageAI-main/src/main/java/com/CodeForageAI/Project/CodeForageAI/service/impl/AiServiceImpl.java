@@ -137,6 +137,9 @@ public class AiServiceImpl implements AiService {
                 detectContentType(request.path()),
                 userId
         );
+        long estimatedTokens = Math.max(1L,
+                (long) Math.ceil(updatedContent.length() / (double) CHARS_PER_TOKEN));
+        quotaService.logTokenUsage(userId, request.projectId(), estimatedTokens);
         return new AiEditFileResponse(request.path(), updatedContent);
     }
 
