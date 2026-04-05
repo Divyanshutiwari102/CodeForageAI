@@ -24,8 +24,9 @@ interface ChatStreamEvent {
 }
 
 const CHAT_STREAM_TIMEOUT_MILLISECONDS = 60000;
-const CHAT_STREAM_MAX_RETRIES = 2;
-const CHAT_STREAM_RETRY_DELAY_MILLISECONDS = 600;
+const CHAT_STREAM_RETRY_ATTEMPTS = 2;
+const CHAT_STREAM_MAX_ATTEMPTS = CHAT_STREAM_RETRY_ATTEMPTS + 1;
+const CHAT_STREAM_RETRY_BASE_DELAY_MILLISECONDS = 600;
 
 function mapRole(role: ChatMessageResponse["role"]): "user" | "assistant" {
   return role === "USER" ? "user" : "assistant";
@@ -97,7 +98,11 @@ export async function streamMessage(
     const base = getApiBaseUrl();
     const token = getAuthToken();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort("timeout"), CHAT_STREAM_TIMEOUT_MILLISECONDS);
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      controller.abort();
+    }, CHAT_STREAM_TIMEOUT_MILLISECONDS);
     let didFinish = false;
 
     try {
@@ -135,7 +140,6 @@ export async function streamMessage(
           if (event.type === "token" && event.content) handlers.onToken(event.content);
           if (event.type === "file_saved" && event.content) handlers.onFileSaved?.(event.content);
           if (event.type === "error") {
-            didFinish = true;
             throw new Error(event.content ?? "Streaming failed");
           }
           if (event.type === "done") {
@@ -150,7 +154,7 @@ export async function streamMessage(
         handlers.onDone();
       }
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      if (didTimeout) {
         throw new Error("Chat stream timed out. Please try again.");
       }
       throw error;
@@ -160,14 +164,16 @@ export async function streamMessage(
   };
 
   let lastError: Error | null = null;
-  for (let attempt = 0; attempt <= CHAT_STREAM_MAX_RETRIES; attempt += 1) {
+  for (let attempt = 0; attempt < CHAT_STREAM_MAX_ATTEMPTS; attempt += 1) {
     try {
       await tryStream();
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Failed to stream chat response");
-      if (attempt >= CHAT_STREAM_MAX_RETRIES) break;
-      await new Promise((resolve) => setTimeout(resolve, CHAT_STREAM_RETRY_DELAY_MILLISECONDS * (attempt + 1)));
+      if (attempt >= CHAT_STREAM_RETRY_ATTEMPTS) break;
+      await new Promise((resolve) =>
+        setTimeout(resolve, CHAT_STREAM_RETRY_BASE_DELAY_MILLISECONDS * Math.pow(2, attempt)),
+      );
     }
   }
 

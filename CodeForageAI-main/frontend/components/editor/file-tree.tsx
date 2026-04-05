@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { ChevronRight, File, Folder } from "lucide-react";
 import { cn } from "@/utils/cn";
 import type { FileNode } from "@/types";
@@ -27,13 +27,12 @@ const FileTreeRow = memo(function FileTreeRow({ node, expanded, activeFileId, on
   const isFolder = node.type === "folder";
   const open = Boolean(expanded[node.id]);
   const isActiveFile = activeFileId === node.id;
-  const handleClick = useCallback(() => (isFolder ? onToggle(node.id) : onOpen(node)), [isFolder, node, onOpen, onToggle]);
 
   return (
     <li>
       <button
         type="button"
-        onClick={handleClick}
+        onClick={() => (isFolder ? onToggle(node.id) : onOpen(node))}
         className={cn(
           "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-all duration-200",
           isActiveFile

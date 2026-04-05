@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/services/errors";
 
 const PREVIEW_LOADING_STATUSES = new Set(["queued", "starting", "building", "running"]);
 const PREVIEW_POLL_INTERVAL_MILLISECONDS = 5000;
+const PREVIEW_POLL_MAX_ATTEMPTS = 12;
 
 interface PreviewStore {
   previewUrl: string | null;
@@ -71,10 +72,9 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
     }
   },
   poll: async (projectId) => {
+    set({ loading: true, error: null });
     let attempts = 0;
-    while (attempts < 12) {
-      await new Promise((resolve) => setTimeout(resolve, PREVIEW_POLL_INTERVAL_MILLISECONDS));
-      attempts += 1;
+    while (attempts < PREVIEW_POLL_MAX_ATTEMPTS) {
       try {
         const latest = await getLatestPreview(projectId);
         set({
@@ -89,6 +89,9 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
         set({ loading: false, error: getErrorMessage(error, "Failed to refresh preview status") });
         return;
       }
+      attempts += 1;
+      await new Promise((resolve) => setTimeout(resolve, PREVIEW_POLL_INTERVAL_MILLISECONDS));
     }
+    set({ loading: false, error: "Preview startup timed out after maximum polling attempts" });
   },
 }));

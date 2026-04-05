@@ -70,7 +70,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               expanded={expanded}
               activeFileId={activeFileId}
               onToggle={toggleFolder}
-              onOpen={(node) => void openFile(node)}
+              onOpen={openFile}
             />
           ) : null}
         </aside>

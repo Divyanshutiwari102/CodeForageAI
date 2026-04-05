@@ -11,7 +11,7 @@ export function getErrorMessage(error: unknown, fallback = "Something went wrong
   if (!axios.isAxiosError(error)) return fallback;
   const data = error.response?.data as { message?: unknown } | undefined;
   const message = data?.message;
-  return typeof message === "string" && message.trim().length > 0 ? message : fallback;
+  return typeof message === "string" && message.trim().length > 0 ? message.trim() : fallback;
 }
 
 export function emitApiError(detail: ApiErrorEventDetail): void {
