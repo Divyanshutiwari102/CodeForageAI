@@ -7,6 +7,7 @@ public final class FileValidationUtil {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/json",
             "application/javascript",
+            "application/typescript",
             "application/xml",
             "application/yaml"
     );
