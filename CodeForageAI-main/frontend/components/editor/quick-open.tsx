@@ -161,17 +161,17 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
               const nameMatches = (result.matches ?? []).find((match) => match.key === "name")?.indices ?? [];
               return (
                 <li key={file.id}>
-                <button
-                  type="button"
-                  onClick={() => selectFile(file)}
-                  className={`w-full rounded-md px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 ${
-                    index === highlightedIndex ? "bg-white/10" : ""
-                  }`}
-                >
-                  <span className="block truncate">{renderHighlighted(file.name, nameMatches)}</span>
-                  <span className="block truncate text-xs text-slate-400">{renderHighlighted(file.id, idMatches)}</span>
-                </button>
-              </li>
+                  <button
+                    type="button"
+                    onClick={() => selectFile(file)}
+                    className={`w-full rounded-md px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 ${
+                      index === highlightedIndex ? "bg-white/10" : ""
+                    }`}
+                  >
+                    <span className="block truncate">{renderHighlighted(file.name, nameMatches)}</span>
+                    <span className="block truncate text-xs text-slate-400">{renderHighlighted(file.id, idMatches)}</span>
+                  </button>
+                </li>
               );
             })
           )}

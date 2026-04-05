@@ -64,7 +64,7 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
 
     const scheduleReconnect = () => {
       if (stopped || reconnectTimer) return;
-      const delay = Math.min(RECONNECT_BASE_DELAY_MS * (reconnectAttempts + 1), RECONNECT_MAX_DELAY_MS);
+      const delay = Math.min(RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_DELAY_MS);
       reconnectAttempts += 1;
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
