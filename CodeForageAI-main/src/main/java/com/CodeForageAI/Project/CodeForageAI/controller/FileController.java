@@ -2,9 +2,12 @@ package com.CodeForageAI.Project.CodeForageAI.controller;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.project.FileContentResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.FileNode;
+import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
+import com.CodeForageAI.Project.CodeForageAI.util.FileValidationUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
@@ -13,15 +16,25 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/projects/{projectId}/files")
 public class FileController {
-
     private final FileService fileService;
     private final AuthUtil authUtil;
+    private static final int MAX_TRACKED_UPLOAD_USERS = 10_000;
+    private final Map<Long, UploadRateState> uploadCounters = new ConcurrentHashMap<>();
+
+    @Value("${upload.max-size-bytes:1048576}")
+    private long maxUploadSizeBytes;
+    @Value("${upload.rate-limit.max-requests:30}")
+    private int uploadRateLimitMaxRequests;
+    @Value("${upload.rate-limit.window-seconds:60}")
+    private long uploadRateLimitWindowSeconds;
 
     @GetMapping
     public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId) {
@@ -45,6 +58,7 @@ public class FileController {
             @RequestParam MultipartFile file
     ) throws IOException {
         Long userId = authUtil.getCurrentUserId();
+        validateUploadRequest(file, userId);
         byte[] content = file.getBytes();
         FileNode fileNode = fileService.uploadFile(projectId, path, content, file.getContentType(), userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(fileNode);
@@ -73,6 +87,63 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.parseMediaType("application/zip"))
                 .body(zipBytes);
+    }
+
+    private void validateUploadRequest(MultipartFile file, Long userId) {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Uploaded file must not be empty");
+        }
+        if (file.getSize() > maxUploadSizeBytes) {
+            throw new BadRequestException("Uploaded file exceeds allowed size");
+        }
+        String contentType = file.getContentType();
+        if (!FileValidationUtil.isAllowedContentType(contentType)) {
+            throw new BadRequestException("Unsupported file content type");
+        }
+        if (uploadCounters.size() > MAX_TRACKED_UPLOAD_USERS) {
+            uploadCounters.entrySet().removeIf(entry ->
+                    UploadRateState.isStale(entry.getValue(), uploadRateLimitWindowSeconds)
+            );
+        }
+        UploadRateState counter = uploadCounters.computeIfAbsent(
+                userId, ignored -> new UploadRateState()
+        );
+        if (!counter.allow(uploadRateLimitMaxRequests, uploadRateLimitWindowSeconds)) {
+            throw new BadRequestException("Upload rate limit exceeded");
+        }
+    }
+
+    private static final class UploadRateState {
+        private long windowStartEpochMillis;
+        private long lastSeenEpochMillis;
+        private int count;
+
+        private UploadRateState() {
+            this.windowStartEpochMillis = System.currentTimeMillis();
+            this.lastSeenEpochMillis = this.windowStartEpochMillis;
+            this.count = 0;
+        }
+
+        private synchronized boolean allow(int maxRequests, long windowSeconds) {
+            long now = System.currentTimeMillis();
+            long windowMillis = windowSeconds * 1000L;
+            if (now - windowStartEpochMillis >= windowMillis) {
+                windowStartEpochMillis = now;
+                count = 0;
+            }
+            lastSeenEpochMillis = now;
+            if (count >= maxRequests) {
+                return false;
+            }
+            count++;
+            return true;
+        }
+
+        private static boolean isStale(UploadRateState state, long windowSeconds) {
+            long now = System.currentTimeMillis();
+            long staleThresholdMillis = windowSeconds * 4L * 1000L;
+            return now - state.lastSeenEpochMillis > staleThresholdMillis;
+        }
     }
 
 }

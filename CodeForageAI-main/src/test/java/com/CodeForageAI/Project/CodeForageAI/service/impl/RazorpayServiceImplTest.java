@@ -55,6 +55,7 @@ class RazorpayServiceImplTest {
     void setUp() {
         ReflectionTestUtils.setField(razorpayService, "keySecret", "test_secret_1234567890");
         ReflectionTestUtils.setField(razorpayService, "keyId", "test_key");
+        ReflectionTestUtils.setField(razorpayService, "proAmountPaise", 12345);
     }
 
     @Test
@@ -115,5 +116,14 @@ class RazorpayServiceImplTest {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    @Test
+    void resolveAmountInPaise_usesConfiguredProAmount() {
+        Plan proPlan = Plan.builder().id(1L).name(PlanType.PRO).build();
+
+        Integer amount = ReflectionTestUtils.invokeMethod(razorpayService, "resolveAmountInPaise", proPlan);
+
+        assertEquals(12345, amount);
     }
 }

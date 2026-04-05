@@ -6,12 +6,14 @@ import com.CodeForageAI.Project.CodeForageAI.dto.project.FileNode;
 import com.CodeForageAI.Project.CodeForageAI.entity.Project;
 import com.CodeForageAI.Project.CodeForageAI.entity.ProjectFile;
 import com.CodeForageAI.Project.CodeForageAI.entity.User;
+import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectFileRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.service.RagService;
+import com.CodeForageAI.Project.CodeForageAI.util.FileValidationUtil;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
@@ -21,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +45,7 @@ import java.util.zip.ZipOutputStream;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Transactional
 public class FileServiceImpl implements FileService {
+    private static final int MAX_PATH_LENGTH = 255;
 
     MinioClient minioClient;
     MinioConfig minioConfig;
@@ -114,11 +118,17 @@ public class FileServiceImpl implements FileService {
         User user = userRepository.getReferenceById(userId);
 
         String normalizedPath = normalizePath(path);
+        if (content == null || content.length == 0) {
+            throw new BadRequestException("File content must not be empty");
+        }
         String objectKey = buildObjectKey(projectId, normalizedPath);
 
         String resolvedContentType = (contentType != null && !contentType.isBlank())
                 ? contentType
                 : "application/octet-stream";
+        if (!FileValidationUtil.isAllowedContentType(resolvedContentType)) {
+            throw new BadRequestException("Unsupported content type");
+        }
 
         log.info("Uploading file: projectId={} path={} size={} contentType={}",
                 projectId, normalizedPath, content.length, resolvedContentType);
@@ -257,11 +267,18 @@ public class FileServiceImpl implements FileService {
 
     private String normalizePath(String path) {
         if (path == null || path.isBlank()) {
-            throw new IllegalArgumentException("File path must not be blank");
+            throw new BadRequestException("File path must not be blank");
         }
         String normalized = path.trim().replace("\\", "/");
         while (normalized.startsWith("/")) {
             normalized = normalized.substring(1);
+        }
+        if (!StringUtils.hasText(normalized) || normalized.length() > MAX_PATH_LENGTH) {
+            throw new BadRequestException("Invalid file path");
+        }
+        if (normalized.contains("..") || normalized.contains("//") || normalized.contains("\0")
+                || normalized.startsWith(".") || normalized.contains(":")) {
+            throw new BadRequestException("Invalid file path");
         }
         return normalized;
     }
@@ -279,4 +296,5 @@ public class FileServiceImpl implements FileService {
                 : contentType;
         return base.startsWith("text/") || TEXT_CONTENT_TYPES.contains(base);
     }
+
 }
