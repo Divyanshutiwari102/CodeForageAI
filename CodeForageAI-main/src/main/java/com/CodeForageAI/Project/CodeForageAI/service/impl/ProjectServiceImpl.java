@@ -18,11 +18,11 @@ import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.ProjectService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
 import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
-import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;

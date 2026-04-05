@@ -4,6 +4,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.project.FileContentResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.FileNode;
 import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
+import com.CodeForageAI.Project.CodeForageAI.service.file.UploadRateLimiter;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.util.FileValidationUtil;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 
 @RestController
@@ -26,15 +25,10 @@ import java.util.List;
 public class FileController {
     private final FileService fileService;
     private final AuthUtil authUtil;
-    private static final int MAX_TRACKED_UPLOAD_USERS = 10_000;
-    private final Map<Long, UploadRateState> uploadCounters = new ConcurrentHashMap<>();
+    private final UploadRateLimiter uploadRateLimiter;
 
     @Value("${upload.max-size-bytes:1048576}")
     private long maxUploadSizeBytes;
-    @Value("${upload.rate-limit.max-requests:30}")
-    private int uploadRateLimitMaxRequests;
-    @Value("${upload.rate-limit.window-seconds:60}")
-    private long uploadRateLimitWindowSeconds;
 
     @GetMapping
     public ResponseEntity<List<FileNode>> getFileTree(@PathVariable Long projectId) {
@@ -100,49 +94,8 @@ public class FileController {
         if (!FileValidationUtil.isAllowedContentType(contentType)) {
             throw new BadRequestException("Unsupported file content type");
         }
-        if (uploadCounters.size() > MAX_TRACKED_UPLOAD_USERS) {
-            uploadCounters.entrySet().removeIf(entry ->
-                    UploadRateState.isStale(entry.getValue(), uploadRateLimitWindowSeconds)
-            );
-        }
-        UploadRateState counter = uploadCounters.computeIfAbsent(
-                userId, ignored -> new UploadRateState()
-        );
-        if (!counter.allow(uploadRateLimitMaxRequests, uploadRateLimitWindowSeconds)) {
+        if (!uploadRateLimiter.allow(userId)) {
             throw new BadRequestException("Upload rate limit exceeded");
-        }
-    }
-
-    private static final class UploadRateState {
-        private long windowStartEpochMillis;
-        private long lastSeenEpochMillis;
-        private int count;
-
-        private UploadRateState() {
-            this.windowStartEpochMillis = System.currentTimeMillis();
-            this.lastSeenEpochMillis = this.windowStartEpochMillis;
-            this.count = 0;
-        }
-
-        private synchronized boolean allow(int maxRequests, long windowSeconds) {
-            long now = System.currentTimeMillis();
-            long windowMillis = windowSeconds * 1000L;
-            if (now - windowStartEpochMillis >= windowMillis) {
-                windowStartEpochMillis = now;
-                count = 0;
-            }
-            lastSeenEpochMillis = now;
-            if (count >= maxRequests) {
-                return false;
-            }
-            count++;
-            return true;
-        }
-
-        private static boolean isStale(UploadRateState state, long windowSeconds) {
-            long now = System.currentTimeMillis();
-            long staleThresholdMillis = windowSeconds * 4L * 1000L;
-            return now - state.lastSeenEpochMillis > staleThresholdMillis;
         }
     }
 
