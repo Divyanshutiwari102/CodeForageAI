@@ -35,7 +35,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
-    await useAuthStore.getState().loadUser();
+    try {
+      await useAuthStore.getState().loadUser();
+    } catch {
+      return;
+    }
   },
   login: async (payload) => {
     set({ isLoading: true, error: null });
@@ -44,14 +48,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
+      const message = extractErrorMessage(error, "Login failed. Please try again.");
       clearAuthToken();
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: extractErrorMessage(error, "Login failed. Please try again."),
+        error: message,
       });
-      throw new Error("Authentication failed");
+      throw new Error(message);
     }
   },
   signup: async (payload) => {
@@ -61,14 +66,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
+      const message = extractErrorMessage(error, "Unable to create account. Please try again.");
       clearAuthToken();
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: extractErrorMessage(error, "Unable to create account. Please try again."),
+        error: message,
       });
-      throw new Error("Account creation failed");
+      throw new Error(message);
     }
   },
   loadUser: async () => {
@@ -79,7 +85,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       clearAuthToken();
       set({ user: null, isAuthenticated: false, isLoading: false });
-      throw new Error("Session expired");
+      throw new Error("Failed to load user profile");
     }
   },
   logout: () => {
