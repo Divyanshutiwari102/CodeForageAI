@@ -22,7 +22,7 @@ interface ChatStreamEvent {
   content: string | null;
 }
 
-const CHAT_STREAM_TIMEOUT_MS = 60000;
+const CHAT_STREAM_TIMEOUT_MILLISECONDS = 60000;
 
 function mapRole(role: ChatMessageResponse["role"]): "user" | "assistant" {
   return role === "USER" ? "user" : "assistant";
@@ -93,7 +93,7 @@ export async function streamMessage(
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
   const token = getAuthToken();
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MILLISECONDS);
 
   try {
     const response = await fetch(`${base}/chat/stream`, {

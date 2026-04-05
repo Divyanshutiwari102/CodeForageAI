@@ -14,6 +14,7 @@ interface Props {
 
 export function ChatPanel({ messages, loading, error, onSend }: Props) {
   const [input, setInput] = useState("");
+  const [reduceMotion, setReduceMotion] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,9 +23,18 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
     element.scrollTop = element.scrollHeight;
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduceMotion(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+
   function renderMessageContent(message: ChatMessage) {
     if (message.content) return message.content;
-    if (message.isStreaming) return <span className="animate-pulse text-slate-400">Thinking...</span>;
+    if (message.isStreaming) return <span className={cn("text-slate-400", !reduceMotion && "animate-pulse")}>Thinking...</span>;
     return null;
   }
 
@@ -52,7 +62,7 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
           );
         })}
         {loading && !messages.some((message) => message.isStreaming) ? (
-          <div className="w-fit animate-pulse rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400">Thinking...</div>
+          <div className={cn("w-fit rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400", !reduceMotion && "animate-pulse")}>Thinking...</div>
         ) : null}
         {error ? <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
       </div>

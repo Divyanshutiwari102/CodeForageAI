@@ -37,7 +37,12 @@ export function PreviewPanel({ previewUrl, loading, error, message, onRefresh }:
           <div className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-center text-xs text-rose-200">{error}</div>
         ) : null}
         {!loading && !error && previewUrl ? (
-          <iframe src={previewUrl} title="Project preview" className="h-full w-full rounded-xl border border-white/10 bg-white" />
+          <iframe
+            src={previewUrl}
+            title="Project preview"
+            sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+            className="h-full w-full rounded-xl border border-white/10 bg-white"
+          />
         ) : null}
         {!loading && !error && !previewUrl ? (
           <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-center text-xs text-slate-400">
