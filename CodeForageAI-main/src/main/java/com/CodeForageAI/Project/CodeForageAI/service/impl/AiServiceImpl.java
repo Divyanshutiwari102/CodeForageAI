@@ -26,6 +26,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -121,11 +123,12 @@ public class AiServiceImpl implements AiService {
                 %s
                 """.formatted(request.path(), instruction, existingContent);
 
-        String updatedContent = chatClient.prompt()
+        ChatResponse editResponse = chatClient.prompt()
                 .system("You are an expert coding assistant that edits files safely.")
                 .user(prompt)
                 .call()
-                .content();
+                .chatResponse();
+        String updatedContent = extractResponseContent(editResponse);
         if (updatedContent == null) {
             throw new IllegalStateException("AI returned empty edit response");
         }
@@ -137,9 +140,8 @@ public class AiServiceImpl implements AiService {
                 detectContentType(request.path()),
                 userId
         );
-        long estimatedTokens = Math.max(1L,
-                (long) Math.ceil(updatedContent.length() / (double) CHARS_PER_TOKEN));
-        quotaService.logTokenUsage(userId, request.projectId(), estimatedTokens);
+        long usedTokens = resolveUsedTokens(editResponse, updatedContent);
+        quotaService.logTokenUsage(userId, request.projectId(), usedTokens);
         return new AiEditFileResponse(request.path(), updatedContent);
     }
 
@@ -153,14 +155,20 @@ public class AiServiceImpl implements AiService {
             messages.add(new UserMessage(enhancedPrompt));
 
             AtomicReference<StringBuilder> fullResponse = new AtomicReference<>(new StringBuilder());
+            AtomicReference<ChatResponse> latestResponse = new AtomicReference<>();
 
             chatClient.prompt()
                     .system(SYSTEM_PROMPT)
                     .messages(messages)
                     .stream()
-                    .content()
-                    .doOnNext(chunk -> {
+                    .chatResponse()
+                    .doOnNext(chatResponse -> {
                         try {
+                            latestResponse.set(chatResponse);
+                            String chunk = extractResponseContent(chatResponse);
+                            if (chunk == null || chunk.isEmpty()) {
+                                return;
+                            }
                             fullResponse.get().append(chunk);
                             emitter.send(SseEmitter.event()
                                     .name("message")
@@ -183,10 +191,8 @@ public class AiServiceImpl implements AiService {
                                     .build();
                             chatMessageRepository.save(assistantMessage);
 
-                            // Estimate token usage (approx. CHARS_PER_TOKEN chars per token) and log it
-                            long estimatedTokens = Math.max(1L,
-                                    (long) Math.ceil(completeResponse.length() / (double) CHARS_PER_TOKEN));
-                            quotaService.logTokenUsage(userId, session.getProject().getId(), estimatedTokens);
+                            long usedTokens = resolveUsedTokens(latestResponse.get(), completeResponse);
+                            quotaService.logTokenUsage(userId, session.getProject().getId(), usedTokens);
 
                             // Parse code blocks and write files to MinIO
                             List<CodeBlockParser.ParsedFile> parsedFiles =
@@ -286,7 +292,7 @@ public class AiServiceImpl implements AiService {
 
     private static final long EMITTER_TIMEOUT_MS = 180_000L; // 3 min
 
-    private static final int CHARS_PER_TOKEN = 4; // rough approximation
+    private static final int FALLBACK_CHARS_PER_TOKEN = 4;
 
     private static final Map<String, String> EXTENSION_CONTENT_TYPES = Map.ofEntries(
             Map.entry(".html", "text/html"),
@@ -309,5 +315,27 @@ public class AiServiceImpl implements AiService {
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse("text/plain");
+    }
+
+    private String extractResponseContent(ChatResponse response) {
+        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+            return null;
+        }
+        return response.getResult().getOutput().getText();
+    }
+
+    private long resolveUsedTokens(ChatResponse response, String fallbackContent) {
+        if (response != null && response.getMetadata() != null) {
+            Usage usage = response.getMetadata().getUsage();
+            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                return usage.getTotalTokens();
+            }
+        }
+        return estimateTokens(fallbackContent);
+    }
+
+    private long estimateTokens(String content) {
+        int contentLength = content == null ? 0 : content.length();
+        return Math.max(1L, (long) Math.ceil(contentLength / (double) FALLBACK_CHARS_PER_TOKEN));
     }
 }

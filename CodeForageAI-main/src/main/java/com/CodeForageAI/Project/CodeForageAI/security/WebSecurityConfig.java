@@ -55,7 +55,8 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers("/api/metrics", "/api/metrics/stream").hasRole("ADMIN")
-                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/prometheus").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
