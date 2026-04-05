@@ -18,6 +18,16 @@ interface ChatMessageResponse {
   createdAt: string;
 }
 
+interface ChatCommitResponse {
+  filesCommitted: number;
+  message: string;
+}
+
+interface AiEditFileResponse {
+  path: string;
+  content: string;
+}
+
 interface ChatStreamEvent {
   type: "token" | "file_saved" | "done" | "error";
   content: string | null;
@@ -135,4 +145,22 @@ export async function streamMessage(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function saveChatAsCommit(sessionId: number): Promise<ChatCommitResponse> {
+  const { data } = await api.post<ChatCommitResponse>(`/chat/sessions/${sessionId}/commit`);
+  return data;
+}
+
+export async function aiEditFile(
+  projectId: string,
+  path: string,
+  instruction: string,
+): Promise<AiEditFileResponse> {
+  const { data } = await api.post<AiEditFileResponse>("/chat/edit-file", {
+    projectId: Number(projectId),
+    path,
+    instruction,
+  });
+  return data;
 }

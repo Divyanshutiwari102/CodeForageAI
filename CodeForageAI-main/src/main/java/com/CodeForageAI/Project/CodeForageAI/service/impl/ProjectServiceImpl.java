@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.service.impl;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectShareResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectSummaryResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.Project;
 import com.CodeForageAI.Project.CodeForageAI.entity.ProjectMember;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +54,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = Project.builder()
                 .name(request.name())
                 .isPublic(false)
+                .shareToken(generateShareToken())
                 .build();
         project = projectRepository.save(project);
 
@@ -105,10 +108,33 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.save(project);
     }
 
+    @Override
+    public ProjectShareResponse ensureShareToken(Long id) {
+        Long userId = authUtil.getCurrentUserId();
+        Project project = getAccessibleProjectById(id, userId);
+        if (project.getShareToken() == null || project.getShareToken().isBlank()) {
+            project.setShareToken(generateShareToken());
+            projectRepository.save(project);
+        }
+        return new ProjectShareResponse(project.getShareToken());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProjectResponse getProjectByShareToken(String shareToken) {
+        Project project = projectRepository.findByShareTokenAndDeletedAtIsNull(shareToken)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", shareToken));
+        return projectMapper.toProjectResponse(project);
+    }
+
     ///  INTERNAL FUNCTIONS
 
     public Project getAccessibleProjectById(Long projectId, Long userId) {
         return projectRepository.findAccessibleProjectById(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId.toString()));
+    }
+
+    private String generateShareToken() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 }

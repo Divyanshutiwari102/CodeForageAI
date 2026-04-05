@@ -17,6 +17,7 @@ interface FilesState {
   openFile: (node: FileNode) => Promise<void>;
   setActiveFile: (fileId: string) => void;
   closeTab: (fileId: string) => void;
+  updateTabContent: (fileId: string, content: string) => void;
 }
 
 export const useFilesStore = create<FilesState>((set, get) => ({
@@ -77,4 +78,8 @@ export const useFilesStore = create<FilesState>((set, get) => ({
       activeFileId: activeFileId === fileId ? (nextTabs.at(-1)?.fileId ?? null) : activeFileId,
     });
   },
+  updateTabContent: (fileId, content) =>
+    set((state) => ({
+      tabs: state.tabs.map((tab) => (tab.fileId === fileId ? { ...tab, content } : tab)),
+    })),
 }));

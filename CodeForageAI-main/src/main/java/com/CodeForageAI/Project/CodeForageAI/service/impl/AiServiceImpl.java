@@ -2,6 +2,8 @@ package com.CodeForageAI.Project.CodeForageAI.service.impl;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatStreamEvent;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatStreamRequest;
+import com.CodeForageAI.Project.CodeForageAI.dto.file.AiEditFileRequest;
+import com.CodeForageAI.Project.CodeForageAI.dto.file.AiEditFileResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatMessage;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatSession;
 import com.CodeForageAI.Project.CodeForageAI.enums.MessageRole;
@@ -93,6 +95,39 @@ public class AiServiceImpl implements AiService {
         streamAsync(emitter, session, request, userId);
 
         return emitter;
+    }
+
+    @Override
+    public AiEditFileResponse editFile(AiEditFileRequest request, Long userId) {
+        Long projectId = request.projectId();
+        String existingContent = fileService.getFileContent(projectId, request.path(), userId).content();
+        String prompt = """
+                You are modifying an existing file.
+                Return only the full updated file content with no markdown fences.
+                File path: %s
+                Instruction: %s
+                
+                Existing file content:
+                %s
+                """.formatted(request.path(), request.instruction(), existingContent);
+
+        String updatedContent = chatClient.prompt()
+                .system("You are an expert coding assistant that edits files safely.")
+                .user(prompt)
+                .call()
+                .content();
+        if (updatedContent == null) {
+            throw new IllegalStateException("AI returned empty edit response");
+        }
+
+        fileService.uploadFile(
+                projectId,
+                request.path(),
+                updatedContent.getBytes(StandardCharsets.UTF_8),
+                detectContentType(request.path()),
+                userId
+        );
+        return new AiEditFileResponse(request.path(), updatedContent);
     }
 
     @Async

@@ -28,6 +28,7 @@ public class WebSecurityConfig {
             "/api/payments/webhook", // Razorpay webhook
             "/api/health",
             "/api/metrics",
+            "/api/projects/share/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",

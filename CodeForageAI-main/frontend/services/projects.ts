@@ -6,6 +6,11 @@ interface ApiProject {
   name: string;
   createdAt: string;
   updatedAt: string;
+  shareToken?: string | null;
+}
+
+interface ProjectShareResponse {
+  shareToken: string;
 }
 
 interface ApiMetrics {
@@ -26,6 +31,7 @@ export async function getProjects(): Promise<Project[]> {
     updatedAt: project.updatedAt,
     stars: 0,
     description: "Project workspace",
+    shareToken: project.shareToken ?? undefined,
   }));
 }
 
@@ -40,4 +46,23 @@ export async function getStats(): Promise<Stats[]> {
     { label: "Preview Usage", value: String(analytics.previewUsageCount), delta: `${metrics.totalMessagesAllTime} messages all-time` },
     { label: "Total Users", value: String(metrics.totalUsers), delta: "Platform-wide" },
   ];
+}
+
+export async function shareProject(projectId: string): Promise<string> {
+  const { data } = await api.post<ProjectShareResponse>(`/projects/${projectId}/share`);
+  return data.shareToken;
+}
+
+export async function getProjectByShareToken(token: string): Promise<Project> {
+  const { data } = await api.get<ApiProject>(`/projects/share/${token}`);
+  return {
+    id: String(data.id),
+    name: data.name,
+    framework: "Web",
+    status: "active",
+    updatedAt: data.updatedAt,
+    stars: 0,
+    description: "Shared project workspace",
+    shareToken: token,
+  };
 }

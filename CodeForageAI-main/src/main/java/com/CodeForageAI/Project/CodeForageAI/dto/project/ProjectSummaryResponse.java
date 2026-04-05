@@ -6,6 +6,7 @@ public record ProjectSummaryResponse(
         Long id,
         String projectName,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String shareToken
 ) {
 }

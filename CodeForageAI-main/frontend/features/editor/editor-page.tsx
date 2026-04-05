@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Share2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { ActivityBar } from "@/components/editor/activity-bar";
 import { FileTree } from "@/components/editor/file-tree";
@@ -13,6 +13,8 @@ import { QuickOpen } from "@/components/editor/quick-open";
 import { useFilesStore } from "@/store/useFilesStore";
 import { useChatStore } from "@/store/useChatStore";
 import { exportProjectZip } from "@/services/files";
+import { aiEditFile, saveChatAsCommit } from "@/services/chat";
+import { shareProject } from "@/services/projects";
 import type { FileNode } from "@/types";
 
 const HEADER_HEIGHT = 48; // Must match header `h-12` Tailwind class.
@@ -20,15 +22,18 @@ const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((m
 const MemoizedFileTree = memo(FileTree);
 
 export function EditorPage({ projectId }: { projectId: string }) {
-  const { tree, expanded, activeFileId, tabs, loading, error, loadTree, toggleFolder, openFile, setActiveFile, closeTab } =
+  const { tree, expanded, activeFileId, tabs, loading, error, loadTree, toggleFolder, openFile, setActiveFile, closeTab, updateTabContent } =
     useFilesStore();
-  const { messages, loading: chatLoading, error: chatError, boot, send } = useChatStore();
+  const { sessionId, messages, loading: chatLoading, error: chatError, boot, send } = useChatStore();
   const [quickOpenVisible, setQuickOpenVisible] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [exportTemplate, setExportTemplate] = useState(false);
   const [selectedExportPaths, setSelectedExportPaths] = useState<string[]>([]);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [commitLoading, setCommitLoading] = useState(false);
+  const [aiEditLoading, setAiEditLoading] = useState(false);
 
   const activeTab = useMemo(() => tabs.find((tab) => tab.fileId === activeFileId) ?? null, [tabs, activeFileId]);
   const allFiles = useMemo(() => {
@@ -100,6 +105,57 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setQuickOpenQuery("");
   }, [openFile]);
 
+  const handleShareProject = useCallback(async () => {
+    setShareLoading(true);
+    try {
+      const token = await shareProject(projectId);
+      const url = `${window.location.origin}/project/share/${token}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Share link copied");
+    } catch {
+      toast.error("Failed to generate share link");
+    } finally {
+      setShareLoading(false);
+    }
+  }, [projectId]);
+
+  const handleSaveChatAsCommit = useCallback(async () => {
+    if (!sessionId) {
+      toast.error("Chat session not ready yet");
+      return;
+    }
+    setCommitLoading(true);
+    try {
+      const result = await saveChatAsCommit(sessionId);
+      await loadTree(projectId);
+      toast.success(`${result.message} (${result.filesCommitted} files)`);
+    } catch {
+      toast.error("Failed to save chat as commit");
+    } finally {
+      setCommitLoading(false);
+    }
+  }, [sessionId, loadTree, projectId]);
+
+  const handleAiEditCurrentFile = useCallback(async () => {
+    if (!activeTab) {
+      toast.error("Open a file first");
+      return;
+    }
+    const instruction = window.prompt(`AI edit instruction for ${activeTab.title}`);
+    if (!instruction || !instruction.trim()) return;
+    setAiEditLoading(true);
+    try {
+      const response = await aiEditFile(projectId, activeTab.fileId, instruction.trim());
+      updateTabContent(activeTab.fileId, response.content);
+      toast.success(`AI updated ${response.path}`);
+      await loadTree(projectId);
+    } catch {
+      toast.error("AI edit failed");
+    } finally {
+      setAiEditLoading(false);
+    }
+  }, [activeTab, projectId, updateTabContent, loadTree]);
+
   return (
     <div className="h-screen overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex h-12 items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 text-sm backdrop-blur-xl">
@@ -112,6 +168,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
           >
             <Search className="h-3.5 w-3.5" />
             Search
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleAiEditCurrentFile()}
+            disabled={aiEditLoading}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+            AI Edit File
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleShareProject()}
+            disabled={shareLoading}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
           </button>
           <button
             type="button"
@@ -154,14 +228,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <div className="h-[calc(100%-44px)]">
             <CodeEditor
               key={activeTab?.fileId ?? "empty"}
-              defaultValue={activeTab?.content ?? "// Open a file to start coding"}
+              value={activeTab?.content ?? "// Open a file to start coding"}
               language={activeTab?.language ?? "typescript"}
+              onChange={(value) => {
+                if (!activeTab?.fileId) return;
+                updateTabContent(activeTab.fileId, value);
+              }}
             />
           </div>
         </main>
 
         <div className="hidden xl:block">
-          <ChatPanel messages={messages} loading={chatLoading} error={chatError} onSend={send} />
+          <ChatPanel
+            messages={messages}
+            loading={chatLoading}
+            error={chatError}
+            onSend={send}
+            onSaveAsCommit={handleSaveChatAsCommit}
+            commitLoading={commitLoading}
+          />
         </div>
         <div className="hidden xl:block">
           <PreviewPanel projectId={projectId} />

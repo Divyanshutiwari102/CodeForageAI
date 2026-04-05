@@ -1,6 +1,7 @@
 package com.CodeForageAI.Project.CodeForageAI.controller;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatMessageResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatCommitResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatSessionRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatSessionResponse;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
@@ -40,5 +41,11 @@ public class ChatController {
     public ResponseEntity<List<ChatMessageResponse>> getChatMessages(@PathVariable Long sessionId) {
         Long userId = authUtil.getCurrentUserId();
         return ResponseEntity.ok(chatService.getChatMessages(sessionId, userId));
+    }
+
+    @PostMapping("/api/chat/sessions/{sessionId}/commit")
+    public ResponseEntity<ChatCommitResponse> saveChatAsCommit(@PathVariable Long sessionId) {
+        Long userId = authUtil.getCurrentUserId();
+        return ResponseEntity.ok(chatService.saveChatAsCommit(sessionId, userId));
     }
 }

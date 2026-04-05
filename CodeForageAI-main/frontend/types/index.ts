@@ -16,6 +16,7 @@ export interface Project {
   updatedAt: string;
   stars: number;
   description: string;
+  shareToken?: string;
 }
 
 export interface Stats {

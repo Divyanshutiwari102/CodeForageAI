@@ -9,17 +9,19 @@ const Monaco = dynamic(() => import("@monaco-editor/react"), {
 });
 
 interface Props {
-  defaultValue: string;
+  value: string;
   language: string;
+  onChange?: (value: string) => void;
 }
 
-export function CodeEditor({ defaultValue, language }: Props) {
+export function CodeEditor({ value, language, onChange }: Props) {
   return (
     <Monaco
       height="100%"
       defaultLanguage={language}
       language={language}
-      defaultValue={defaultValue}
+      value={value}
+      onChange={(next) => onChange?.(next ?? "")}
       theme="vs-dark"
       options={{ minimap: { enabled: false }, fontSize: 13, smoothScrolling: true }}
     />

@@ -1,6 +1,7 @@
 package com.CodeForageAI.Project.CodeForageAI.service;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatMessageResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatCommitResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatSessionRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatSessionResponse;
 
@@ -13,4 +14,6 @@ public interface ChatService {
     ChatSessionResponse createChatSession(Long projectId, ChatSessionRequest request, Long userId);
 
     List<ChatMessageResponse> getChatMessages(Long sessionId, Long userId);
+
+    ChatCommitResponse saveChatAsCommit(Long sessionId, Long userId);
 }
