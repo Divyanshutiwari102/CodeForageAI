@@ -3,6 +3,7 @@ package com.CodeForageAI.Project.CodeForageAI.dto.auth;
 public record UserProfileResponse(
         Long id,
         String username,
-        String name
+        String name,
+        String role
 ) {
 }

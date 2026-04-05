@@ -55,6 +55,9 @@ payment:
     circuit-breaker:
       failure-threshold: ${PAYMENT_VERIFY_RATE_LIMIT_CB_FAILURE_THRESHOLD:5}
       open-duration-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_CB_OPEN_DURATION_SECONDS:30}
+  monitoring:
+    failure-rate-alert-threshold-percent: ${PAYMENT_MONITORING_FAILURE_RATE_ALERT_THRESHOLD_PERCENT:30}
+    failure-rate-alert-min-events: ${PAYMENT_MONITORING_FAILURE_RATE_ALERT_MIN_EVENTS:20}
 
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}

@@ -17,6 +17,7 @@ import io.qdrant.client.QdrantClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,6 +57,7 @@ public class HealthController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/metrics")
     public ResponseEntity<MetricsResponse> metrics() {
         long totalUsers = userRepository.count();
@@ -70,6 +72,11 @@ public class HealthController {
                 paymentMetricsTracker.verifySuccessCount(),
                 paymentMetricsTracker.verifyFailureCount(),
                 paymentMetricsTracker.verifyRateLimitedCount(),
+                paymentMetricsTracker.createOrderFailureRatePercent(),
+                paymentMetricsTracker.verifyFailureRatePercent(),
+                paymentMetricsTracker.highFailureRateAlertActive(),
+                paymentMetricsTracker.highFailureRateAlertCount(),
+                paymentMetricsTracker.highFailureRateThresholdPercent(),
                 paymentVerificationRateLimiter.circuitOpen(),
                 paymentVerificationRateLimiter.circuitOpenUntilEpochSecond(),
                 paymentVerificationRateLimiter.consecutiveRedisFailures(),

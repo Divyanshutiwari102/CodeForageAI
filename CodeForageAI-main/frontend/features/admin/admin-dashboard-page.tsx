@@ -99,6 +99,34 @@ export function AdminDashboardPage() {
               ))}
         </section>
 
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {loading || !metrics ? (
+            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+          ) : (
+            <>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Create Failure Rate</p>
+                <p className="mt-2 text-xl font-semibold text-white">{metrics.paymentCreateOrderFailureRatePercent.toFixed(2)}%</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Verify Failure Rate</p>
+                <p className="mt-2 text-xl font-semibold text-white">{metrics.paymentVerifyFailureRatePercent.toFixed(2)}%</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Failure Alert Status</p>
+                <p className={`mt-2 text-xl font-semibold ${metrics.paymentHighFailureRateAlertActive ? "text-red-300" : "text-emerald-300"}`}>
+                  {metrics.paymentHighFailureRateAlertActive ? "ACTIVE" : "NORMAL"}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Failure Alert Count</p>
+                <p className="mt-2 text-xl font-semibold text-white">{metrics.paymentHighFailureRateAlertCount}</p>
+                <p className="mt-1 text-xs text-slate-500">Threshold: {metrics.paymentHighFailureRateThresholdPercent}%</p>
+              </Card>
+            </>
+          )}
+        </section>
+
         <section className="grid gap-3 lg:grid-cols-2">
           {loading || !metrics ? (
             Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-48" />)
@@ -146,7 +174,7 @@ export function AdminDashboardPage() {
               </Card>
               <Card className="p-4">
                 <p className="text-xs text-slate-400">Monitoring Visibility</p>
-                <p className="mt-2 text-sm font-semibold text-white">Limiter + Fallback + Circuit telemetry active</p>
+                <p className="mt-2 text-sm font-semibold text-white">Limiter + Fallback + Circuit + Alert telemetry active</p>
               </Card>
             </>
           )}

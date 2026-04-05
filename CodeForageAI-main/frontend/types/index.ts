@@ -6,6 +6,7 @@ export interface User {
   email: string;
   avatarUrl?: string;
   plan: "free" | "pro";
+  role: "USER" | "ADMIN";
 }
 
 export interface Project {

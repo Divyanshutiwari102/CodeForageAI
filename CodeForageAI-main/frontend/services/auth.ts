@@ -5,6 +5,7 @@ interface UserProfileResponse {
   id: number;
   username: string;
   name: string;
+  role: "USER" | "ADMIN";
 }
 
 interface AuthResponse {
@@ -29,6 +30,7 @@ function mapUser(profile: UserProfileResponse): User {
     name: profile.name,
     email: profile.username,
     plan: "free",
+    role: profile.role ?? "USER",
   };
 }
 

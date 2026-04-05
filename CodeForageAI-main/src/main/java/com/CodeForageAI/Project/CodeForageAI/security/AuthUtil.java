@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ public class AuthUtil {
         return Jwts.builder()
                 .subject(user.getUsername())
                 .claim("userId", user.getId().toString())
+                .claim("role", user.getRole().name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24))
                 .signWith(getSecretKey())
@@ -48,7 +50,16 @@ public class AuthUtil {
 
             Long userId = Long.parseLong(claims.get("userId", String.class));
             String username = claims.getSubject();
-            return new JwtUserPrincipal(userId, username, new ArrayList<>());
+            String role = claims.get("role", String.class);
+            if (role == null || role.isBlank()) {
+                role = "USER";
+            }
+            return new JwtUserPrincipal(
+                    userId,
+                    username,
+                    role,
+                    new ArrayList<>(java.util.List.of(new SimpleGrantedAuthority("ROLE_" + role)))
+            );
         } catch (Exception e) {
             log.warn("Invalid or expired JWT token: {}", e.getMessage());
             throw new JwtException("Invalid or expired token", e);

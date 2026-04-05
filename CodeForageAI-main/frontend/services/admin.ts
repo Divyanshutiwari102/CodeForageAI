@@ -11,6 +11,11 @@ export interface AdminMetrics {
   paymentVerifySuccessCount: number;
   paymentVerifyFailureCount: number;
   paymentVerifyRateLimitedCount: number;
+  paymentCreateOrderFailureRatePercent: number;
+  paymentVerifyFailureRatePercent: number;
+  paymentHighFailureRateAlertActive: boolean;
+  paymentHighFailureRateAlertCount: number;
+  paymentHighFailureRateThresholdPercent: number;
   paymentRateLimiterCircuitOpen: boolean;
   paymentRateLimiterCircuitOpenUntilEpochSecond: number;
   paymentRateLimiterConsecutiveRedisFailures: number;

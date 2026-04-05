@@ -4,6 +4,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.auth.AuthResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.auth.LoginRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.auth.SignupRequest;
 import com.CodeForageAI.Project.CodeForageAI.entity.User;
+import com.CodeForageAI.Project.CodeForageAI.enums.UserRole;
 import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.mapper.UserMapper;
 import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
@@ -37,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setRole(UserRole.USER);
         user = userRepository.save(user);
 
         String token = authUtil.generateAccessToken(user);
