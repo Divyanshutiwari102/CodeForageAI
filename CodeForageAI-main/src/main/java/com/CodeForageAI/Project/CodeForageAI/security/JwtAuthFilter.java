@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.security;
 
 import com.CodeForageAI.Project.CodeForageAI.service.AuditLogService;
 import com.CodeForageAI.Project.CodeForageAI.util.TraceContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -29,6 +31,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
     private final AuthUtil authUtil;
     private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -63,7 +66,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             if ((jwtToken == null || jwtToken.isBlank()) && request.getCookies() != null) {
                 for (Cookie cookie : request.getCookies()) {
-                    if ("auth_token".equals(cookie.getName())) {
+                    if (AuthConstants.AUTH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
                         jwtToken = cookie.getValue();
                         break;
                     }
@@ -119,6 +122,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write("{\"status\":\"UNAUTHORIZED\",\"message\":\"" + message + "\"}");
+        response.getWriter().write(objectMapper.writeValueAsString(
+                Map.of("status", "UNAUTHORIZED", "message", message)
+        ));
+        response.getWriter().flush();
     }
 }

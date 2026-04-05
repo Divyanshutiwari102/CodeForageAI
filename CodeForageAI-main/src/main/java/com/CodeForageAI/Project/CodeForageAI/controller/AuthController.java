@@ -5,6 +5,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.auth.LoginRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.auth.SignupRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.auth.UserProfileResponse;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
+import com.CodeForageAI.Project.CodeForageAI.security.AuthConstants;
 import com.CodeForageAI.Project.CodeForageAI.service.AuthService;
 import com.CodeForageAI.Project.CodeForageAI.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AuthController {
+    private static final long AUTH_COOKIE_MAX_AGE_SECONDS = 60L * 60 * 24;
 
     AuthService authService;
     UserService userService;
@@ -52,12 +54,12 @@ public class AuthController {
     }
 
     private void addAuthCookie(HttpServletResponse response, String token) {
-        ResponseCookie cookie = ResponseCookie.from("auth_token", token)
+        ResponseCookie cookie = ResponseCookie.from(AuthConstants.AUTH_TOKEN_COOKIE_NAME, token)
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/")
                 .sameSite(cookieSameSite)
-                .maxAge(60 * 60 * 24)
+                .maxAge(AUTH_COOKIE_MAX_AGE_SECONDS)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

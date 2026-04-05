@@ -7,9 +7,10 @@ export function getAuthToken(): string | null {
 }
 
 export function setAuthToken(token: string): void {
+  void token;
   if (typeof window === "undefined") return;
-  // Legacy fallback only; preferred auth path is httpOnly cookie from backend.
-  localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, token);
+  // Preferred auth path is httpOnly cookie from backend; do not persist JWT in localStorage.
+  localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 

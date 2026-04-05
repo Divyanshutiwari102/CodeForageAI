@@ -8,6 +8,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.subscription.SubscriptionRespon
 import com.CodeForageAI.Project.CodeForageAI.entity.Plan;
 import com.CodeForageAI.Project.CodeForageAI.enums.PlanType;
 import com.CodeForageAI.Project.CodeForageAI.enums.SubscriptionStatus;
+import com.CodeForageAI.Project.CodeForageAI.repository.PlanRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.SubscriptionRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SubscriptionServiceImpl implements SubscriptionService {
 
+    private static final int DEFAULT_FREE_MAX_PROJECTS = 3;
+    private static final int DEFAULT_FREE_MAX_TOKENS_PER_MONTH = 50_000;
+
     private final SubscriptionRepository subscriptionRepository;
+    private final PlanRepository planRepository;
 
     @Override
     public SubscriptionResponse getCurrentSubscription(Long userId) {
@@ -29,14 +34,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                         0L
                 ))
                 .orElseGet(() -> new SubscriptionResponse(
-                        new PlanResponse(
-                                null,
-                                PlanType.FREE.name(),
-                                3,
-                                50_000,
-                                false,
-                                "free"
-                        ),
+                        buildFreePlanResponse(),
                         SubscriptionStatus.ACTIVE.name(),
                         null,
                         0L
@@ -72,5 +70,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 proPlan,
                 proPlan ? "custom" : "free"
         );
+    }
+
+    private PlanResponse buildFreePlanResponse() {
+        return planRepository.findByName(PlanType.FREE)
+                .map(this::toPlanResponse)
+                .orElse(new PlanResponse(
+                        null,
+                        PlanType.FREE.name(),
+                        DEFAULT_FREE_MAX_PROJECTS,
+                        DEFAULT_FREE_MAX_TOKENS_PER_MONTH,
+                        false,
+                        "free"
+                ));
     }
 }

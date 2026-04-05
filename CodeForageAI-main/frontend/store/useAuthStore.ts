@@ -26,7 +26,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   init: async () => {
     try {
       await get().loadUser();
-    } catch {
+    } catch (error) {
+      console.error("Session initialization failed", error);
       set({ user: null, isAuthenticated: false, isLoading: false, error: null });
       return;
     }
