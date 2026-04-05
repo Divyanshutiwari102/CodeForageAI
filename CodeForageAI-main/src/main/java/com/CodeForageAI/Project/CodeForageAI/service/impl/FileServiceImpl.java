@@ -6,6 +6,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.project.FileNode;
 import com.CodeForageAI.Project.CodeForageAI.entity.Project;
 import com.CodeForageAI.Project.CodeForageAI.entity.ProjectFile;
 import com.CodeForageAI.Project.CodeForageAI.entity.User;
+import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectFileRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
@@ -117,7 +118,7 @@ public class FileServiceImpl implements FileService {
 
         String normalizedPath = normalizePath(path);
         if (content == null || content.length == 0) {
-            throw new IllegalArgumentException("File content must not be empty");
+            throw new BadRequestException("File content must not be empty");
         }
         String objectKey = buildObjectKey(projectId, normalizedPath);
 
@@ -125,7 +126,7 @@ public class FileServiceImpl implements FileService {
                 ? contentType
                 : "application/octet-stream";
         if (!isAllowedContentType(resolvedContentType)) {
-            throw new IllegalArgumentException("Unsupported content type");
+            throw new BadRequestException("Unsupported content type");
         }
 
         log.info("Uploading file: projectId={} path={} size={} contentType={}",
@@ -265,18 +266,18 @@ public class FileServiceImpl implements FileService {
 
     private String normalizePath(String path) {
         if (path == null || path.isBlank()) {
-            throw new IllegalArgumentException("File path must not be blank");
+            throw new BadRequestException("File path must not be blank");
         }
         String normalized = path.trim().replace("\\", "/");
         while (normalized.startsWith("/")) {
             normalized = normalized.substring(1);
         }
         if (!StringUtils.hasText(normalized) || normalized.length() > MAX_PATH_LENGTH) {
-            throw new IllegalArgumentException("Invalid file path");
+            throw new BadRequestException("Invalid file path");
         }
         if (normalized.contains("..") || normalized.contains("//") || normalized.contains("\0")
                 || normalized.startsWith(".") || normalized.contains(":")) {
-            throw new IllegalArgumentException("Invalid file path");
+            throw new BadRequestException("Invalid file path");
         }
         return normalized;
     }
