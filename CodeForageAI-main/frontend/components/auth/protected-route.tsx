@@ -17,9 +17,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         if (process.env.NODE_ENV !== "production") {
           console.error("ProtectedRoute init failed", error);
         }
+        router.replace("/login");
       })
       .finally(() => setIsReady(true));
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     function onUnauthorized() {
