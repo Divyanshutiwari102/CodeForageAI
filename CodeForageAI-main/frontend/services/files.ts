@@ -105,13 +105,21 @@ export async function getFileContent(projectId: string, path: string): Promise<s
 
 export async function exportProjectZip(
   projectId: string,
-  options?: { paths?: string[]; asTemplate?: boolean },
+  options?: { paths?: string[]; asTemplate?: boolean; onProgress?: (progress: number | null) => void },
 ): Promise<{ filename: string; blob: Blob }> {
   const response = await api.get<Blob>(`/projects/${projectId}/files/export`, {
     responseType: "blob",
     params: {
       ...(options?.asTemplate ? { template: "true" } : {}),
       ...(options?.paths?.length ? { path: options.paths } : {}),
+    },
+    onDownloadProgress: (event) => {
+      if (!options?.onProgress) return;
+      if (!event.total) {
+        options.onProgress(null);
+        return;
+      }
+      options.onProgress(Math.round((event.loaded / event.total) * 100));
     },
   });
   const header = response.headers["content-disposition"] as string | undefined;

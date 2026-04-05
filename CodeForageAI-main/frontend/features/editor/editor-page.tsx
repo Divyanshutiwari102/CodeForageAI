@@ -28,6 +28,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [exportTemplate, setExportTemplate] = useState(false);
   const [selectedExportPaths, setSelectedExportPaths] = useState<string[]>([]);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  const [exportProgress, setExportProgress] = useState<number | null>(null);
 
   const activeTab = useMemo(() => tabs.find((tab) => tab.fileId === activeFileId) ?? null, [tabs, activeFileId]);
   const allFiles = useMemo(() => {
@@ -52,10 +53,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
   const handleExport = useCallback(async () => {
       const toastId = toast.loading("Preparing ZIP export...");
+    setExportProgress(0);
     try {
       const { filename, blob } = await exportProjectZip(projectId, {
         asTemplate: exportTemplate,
         paths: selectedExportPaths.length > 0 ? selectedExportPaths : undefined,
+        onProgress: (progress) => setExportProgress(progress),
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -67,8 +70,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
       URL.revokeObjectURL(url);
       toast.success("Project exported", { id: toastId });
       setShowExportOptions(false);
+      setExportProgress(null);
     } catch {
       toast.error("Failed to export project", { id: toastId });
+      setExportProgress(null);
     }
   }, [exportTemplate, projectId, selectedExportPaths]);
 
@@ -212,6 +217,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <p className="mt-2 text-[11px] text-slate-400">
               Leave all unchecked to export full project.
             </p>
+            {exportProgress !== null ? (
+              <div className="mt-2">
+                <div className="h-1.5 w-full overflow-hidden rounded bg-white/10">
+                  <div className="h-full bg-cyan-400 transition-all" style={{ width: `${exportProgress}%` }} />
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Download progress: {exportProgress}%
+                </p>
+              </div>
+            ) : null}
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
