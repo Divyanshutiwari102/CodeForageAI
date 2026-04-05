@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { FileNode } from "@/types";
 
 interface Props {
@@ -33,6 +33,18 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
     () => (q ? fileList.filter((f) => f.id.toLowerCase().includes(q) || f.name.toLowerCase().includes(q)) : fileList).slice(0, 20),
     [fileList, q],
   );
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeydown);
+    return () => window.removeEventListener("keydown", onKeydown);
+  }, [open, onClose]);
 
   if (!open) return null;
 

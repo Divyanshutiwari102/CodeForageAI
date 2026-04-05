@@ -62,16 +62,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
       if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === "e") {
         event.preventDefault();
         void handleExport();
-        return;
-      }
-      if (event.key === "Escape" && quickOpenVisible) {
-        setQuickOpenVisible(false);
-        setQuickOpenQuery("");
       }
     };
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
-  }, [handleExport, quickOpenVisible]);
+  }, [handleExport]);
 
   const handleQuickOpenSelect = useCallback(async (file: FileNode) => {
     await openFile(file);
