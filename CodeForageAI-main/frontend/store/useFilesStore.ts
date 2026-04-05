@@ -84,6 +84,11 @@ export const useFilesStore = create<FilesState>((set, get) => ({
   },
   updateTabContent: (fileId, content) =>
     set((state) => ({
-      tabs: state.tabs.map((tab) => (tab.fileId === fileId ? { ...tab, content } : tab)),
+      tabsByFileId: state.tabsByFileId[fileId]
+        ? {
+            ...state.tabsByFileId,
+            [fileId]: { ...state.tabsByFileId[fileId], content },
+          }
+        : state.tabsByFileId,
     })),
 }));
