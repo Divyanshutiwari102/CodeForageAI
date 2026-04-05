@@ -48,6 +48,7 @@ export interface EditorTab {
   title: string;
   language: string;
   content: string;
+  isDirty?: boolean;
 }
 
 export interface ChatMessage {

@@ -22,8 +22,9 @@ export function EditorTabs({ tabs, activeFileId, onActivate, onClose }: Props) {
             "group inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition",
             activeFileId === tab.fileId ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
           )}
-        >
+          >
           {tab.title}
+          {tab.isDirty ? <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-cyan-300" /> : null}
           <span
             onClick={(e) => {
               e.stopPropagation();

@@ -38,8 +38,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   send: async (content) => {
     const trimmed = content.trim();
     if (!trimmed) return;
-    const { projectId } = get();
+    const { projectId, loading } = get();
     if (!projectId) return;
+    if (loading) return;
 
     const currentSessionId = get().sessionId ?? (await getOrCreateChatSession(projectId, trimmed));
     const userMessage: ChatMessage = {
