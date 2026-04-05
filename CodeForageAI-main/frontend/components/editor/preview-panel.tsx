@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ExternalLink, Play, RotateCw, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import { usePreviewStore } from "@/store/usePreviewStore";
 
 interface Props {
@@ -16,7 +17,14 @@ export function PreviewPanel({ projectId }: Props) {
   }, [load, projectId]);
 
   async function handleRefresh() {
+    const toastId = toast.loading("Refreshing preview...");
     await refresh(projectId);
+    const { error: latestError } = usePreviewStore.getState();
+    if (latestError) {
+      toast.error(latestError, { id: toastId });
+      return;
+    }
+    toast.success("Preview updated", { id: toastId });
   }
 
   return (

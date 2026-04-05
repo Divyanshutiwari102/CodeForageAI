@@ -14,10 +14,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     useAuthStore
       .getState()
       .init()
-      .catch((error) => {
-        if (process.env.NODE_ENV !== "production") {
-          console.error("ProtectedRoute init failed", error);
-        }
+      .catch(() => {
         router.replace("/login");
       })
       .finally(() => setIsReady(true));

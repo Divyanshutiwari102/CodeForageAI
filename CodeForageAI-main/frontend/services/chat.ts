@@ -1,4 +1,5 @@
 import { api } from "@/services/api";
+import { getApiBaseUrl } from "@/services/config";
 import { getAuthToken } from "@/services/token";
 import type { ChatMessage } from "@/types";
 
@@ -90,7 +91,7 @@ export async function streamMessage(
     onFileSaved?: (path: string) => void;
   },
 ): Promise<void> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+  const base = getApiBaseUrl();
   const token = getAuthToken();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MILLISECONDS);

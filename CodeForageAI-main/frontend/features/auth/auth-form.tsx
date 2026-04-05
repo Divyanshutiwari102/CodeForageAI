@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -16,10 +17,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const success = mode === "login" ? await login({ username: email, password }) : await signup({ username: email, name, password });
+    const action = mode === "login" ? "Signing in..." : "Creating account...";
+    const successMessage = mode === "login" ? "Signed in successfully" : "Account created successfully";
+    const toastId = toast.loading(action);
+    const success =
+      mode === "login"
+        ? await login({ username: email, password })
+        : await signup({ username: email, name, password });
     if (success) {
+      toast.success(successMessage, { id: toastId });
       router.replace("/dashboard");
+      return;
     }
+    toast.error(useAuthStore.getState().error || "Authentication failed", { id: toastId });
   }
 
   return (

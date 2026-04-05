@@ -1,9 +1,10 @@
 import axios from "axios";
 import { clearAuthToken, getAuthToken } from "@/services/token";
 import { AUTH_UNAUTHORIZED_EVENT } from "@/services/auth-events";
+import { getApiBaseUrl } from "@/services/config";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api",
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
