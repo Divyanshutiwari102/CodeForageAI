@@ -10,6 +10,8 @@ import { PreviewPanel } from "@/components/editor/preview-panel";
 import { useFilesStore } from "@/store/useFilesStore";
 import { useChatStore } from "@/store/useChatStore";
 
+const HEADER_HEIGHT = 48;
+
 export function EditorPage({ projectId }: { projectId: string }) {
   const { tree, expanded, activeFileId, tabs, loading, error, loadTree, toggleFolder, openFile, setActiveFile, closeTab } =
     useFilesStore();
@@ -29,7 +31,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
         <span className="text-xs text-slate-400">Realtime IDE • Preview • AI Chat</span>
       </header>
 
-      <div className="grid h-[calc(100vh-48px)] grid-cols-[48px_260px_1fr] xl:grid-cols-[48px_280px_1fr_340px_360px]">
+      <div className="grid grid-cols-[48px_260px_1fr] xl:grid-cols-[48px_280px_1fr_340px_360px]" style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
         <ActivityBar />
 
         <aside className="overflow-auto border-r border-white/10 bg-slate-950/70 p-2">
