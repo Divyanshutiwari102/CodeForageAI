@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: extractErrorMessage(error, "Login failed. Please try again."),
       });
-      throw new Error("Login failed");
+      throw new Error("Authentication failed");
     }
   },
   signup: async (payload) => {
@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: extractErrorMessage(error, "Unable to create account. Please try again."),
       });
-      throw new Error("Signup failed");
+      throw new Error("Account creation failed");
     }
   },
   loadUser: async () => {
@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       clearAuthToken();
       set({ user: null, isAuthenticated: false, isLoading: false });
-      throw new Error("Unauthorized");
+      throw new Error("Session expired");
     }
   },
   logout: () => {
