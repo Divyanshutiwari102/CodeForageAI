@@ -8,6 +8,7 @@ import com.CodeForageAI.Project.CodeForageAI.entity.Plan;
 import com.CodeForageAI.Project.CodeForageAI.entity.Subscription;
 import com.CodeForageAI.Project.CodeForageAI.entity.User;
 import com.CodeForageAI.Project.CodeForageAI.enums.PaymentTransactionStatus;
+import com.CodeForageAI.Project.CodeForageAI.enums.PlanType;
 import com.CodeForageAI.Project.CodeForageAI.enums.SubscriptionStatus;
 import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
@@ -64,18 +65,21 @@ public class RazorpayServiceImpl implements RazorpayService {
     public CreateOrderResponse createOrder(Long userId, CreateOrderRequest request) {
         String correlationId = newCorrelationId();
         try {
+            Plan plan = planRepository.findById(request.planId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId().toString()));
+            int serverAmount = resolveAmountInPaise(plan);
             log.info("{} event=create_order status=started correlationId={} userId={} amount={} currency={}",
-                    PAYMENT_AUDIT, correlationId, userId, request.amount(), request.currency());
+                    PAYMENT_AUDIT, correlationId, userId, serverAmount, request.currency());
             JSONObject options = new JSONObject();
-            options.put("amount", request.amount());
+            options.put("amount", serverAmount);
             options.put("currency", request.currency());
             options.put("receipt", "rcpt_user_" + userId + "_" + System.currentTimeMillis());
 
             Order order = client().orders.create(options);
             log.info("{} event=create_order status=success correlationId={} userId={} orderId={} amount={} currency={}",
-                    PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), request.amount(), request.currency());
+                    PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), serverAmount, request.currency());
             paymentMetricsTracker.recordCreateOrderSuccess();
-            return new CreateOrderResponse(order.get("id"), request.amount(), request.currency(), keyId);
+            return new CreateOrderResponse(order.get("id"), serverAmount, request.currency(), keyId);
         } catch (Exception e) {
             log.error("{} event=create_order status=failure correlationId={} userId={} amount={} currency={} error={}",
                     PAYMENT_AUDIT, correlationId, userId, request.amount(), request.currency(), e.getMessage(), e);
@@ -202,6 +206,16 @@ public class RazorpayServiceImpl implements RazorpayService {
 
     private String newCorrelationId() {
         return UUID.randomUUID().toString();
+    }
+
+    private int resolveAmountInPaise(Plan plan) {
+        if (plan.getName() == PlanType.FREE) {
+            return 0;
+        }
+        if (plan.getName() == PlanType.PRO) {
+            return 99_900;
+        }
+        throw new BadRequestException("Unsupported plan for payment");
     }
 
     private String maskId(String value) {
