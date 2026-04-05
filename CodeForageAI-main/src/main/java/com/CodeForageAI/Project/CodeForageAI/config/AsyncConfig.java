@@ -15,7 +15,7 @@ public class AsyncConfig {
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(20);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("ai-stream-");
+        executor.setThreadNamePrefix("async-task-");
         executor.initialize();
         return executor;
     }
