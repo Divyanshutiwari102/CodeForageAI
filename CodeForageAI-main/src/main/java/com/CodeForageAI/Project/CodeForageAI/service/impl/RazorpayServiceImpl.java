@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -111,8 +112,11 @@ public class RazorpayServiceImpl implements RazorpayService {
             subscriptionRepository.save(sub);
 
         } catch (DataIntegrityViolationException e) {
-            // Idempotent at DB level: unique payment_id already persisted by concurrent request.
-            return;
+            if (isDuplicatePaymentIdViolation(e)) {
+                // Idempotent at DB level: unique payment_id already persisted by concurrent request.
+                return;
+            }
+            throw new BadRequestException("Payment verification failed: " + e.getMessage());
 
         } catch (BadRequestException e) {
             throw e;
@@ -140,5 +144,12 @@ public class RazorpayServiceImpl implements RazorpayService {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    private boolean isDuplicatePaymentIdViolation(DataIntegrityViolationException e) {
+        String message = e.getMessage();
+        return StringUtils.hasText(message)
+                && message.toLowerCase().contains("provider_payment_id")
+                && (message.toLowerCase().contains("duplicate") || message.toLowerCase().contains("unique"));
     }
 }
