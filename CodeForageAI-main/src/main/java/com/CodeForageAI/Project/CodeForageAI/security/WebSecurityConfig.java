@@ -25,7 +25,6 @@ public class WebSecurityConfig {
             "/api/auth/login",
             "/api/auth/signup",
             "/api/stripe/webhook",
-            "/api/payments/webhook", // Razorpay webhook
             "/api/health",
             "/api/metrics",
             "/api/projects/share/**",

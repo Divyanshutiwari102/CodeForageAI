@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record VerifyPaymentRequest(
         @NotNull Long planId,
-        @NotBlank String razorpayOrderId,
-        @NotBlank String razorpayPaymentId,
-        @NotBlank String razorpaySignature
+        @NotBlank String razorpay_order_id,
+        @NotBlank String razorpay_payment_id,
+        @NotBlank String razorpay_signature
 ) {}

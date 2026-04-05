@@ -42,7 +42,7 @@ public class BillingController {
         return ResponseEntity.ok(razorpayService.createOrder(userId, request));
     }
 
-    @PostMapping("/api/payments/verify")
+    @PostMapping({"/api/payments/verify", "/api/payment/verify"})
     public ResponseEntity<Void> verify(@Valid @RequestBody VerifyPaymentRequest request) {
         Long userId = authUtil.getCurrentUserId();
         razorpayService.verifyAndActivate(userId, request);
