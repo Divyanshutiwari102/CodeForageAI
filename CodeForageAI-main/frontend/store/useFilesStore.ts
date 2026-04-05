@@ -59,7 +59,7 @@ export const useFilesStore = create<FilesState>((set, get) => ({
             title: node.name,
             language: node.language ?? "plaintext",
             content,
-          } as EditorTab & { content: string },
+          },
         ],
         activeFileId: node.id,
         loading: false,

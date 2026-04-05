@@ -1,31 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import type { ChatMessage } from "@/types";
+import { cn } from "@/utils/cn";
 
 interface Props {
   messages: ChatMessage[];
   loading: boolean;
+  error?: string | null;
   onSend: (message: string) => Promise<void>;
 }
 
-export function ChatPanel({ messages, loading, onSend }: Props) {
+export function ChatPanel({ messages, loading, error, onSend }: Props) {
   const [input, setInput] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = listRef.current;
+    if (!element) return;
+    element.scrollTop = element.scrollHeight;
+  }, [messages, loading]);
 
   return (
     <section className="flex h-full flex-col border-l border-white/10 bg-slate-950/75">
       <header className="border-b border-white/10 px-3 py-2 text-sm font-medium">AI Copilot</header>
-      <div className="flex-1 space-y-3 overflow-auto p-3">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={msg.role === "assistant" ? "rounded-xl bg-white/10 p-2 text-xs text-slate-200" : "ml-auto max-w-[90%] rounded-xl bg-cyan-500/20 p-2 text-xs text-cyan-100"}
-          >
-            {msg.content}
+      <div ref={listRef} className="flex-1 space-y-3 overflow-auto p-3">
+        {messages.length === 0 && !loading ? (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-400">
+            Start a conversation to generate code and edits.
           </div>
-        ))}
-        {loading ? <div className="h-8 w-2/3 animate-pulse rounded-xl bg-white/10" /> : null}
+        ) : null}
+        {messages.map((msg) => {
+          const isAssistant = msg.role === "assistant";
+          return (
+            <div
+              key={msg.id}
+              className={cn(
+                "max-w-[90%] rounded-xl p-2 text-xs",
+                isAssistant ? "bg-white/10 text-slate-200" : "ml-auto bg-cyan-500/20 text-cyan-100",
+              )}
+            >
+              {msg.content || (msg.isStreaming ? <span className="animate-pulse text-slate-400">Thinking...</span> : null)}
+            </div>
+          );
+        })}
+        {loading ? <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400 animate-pulse">Thinking...</div> : null}
+        {error ? <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
       </div>
       <form
         className="flex items-center gap-2 border-t border-white/10 p-2"
