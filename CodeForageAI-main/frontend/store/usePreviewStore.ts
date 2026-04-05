@@ -3,6 +3,11 @@
 import { create } from "zustand";
 import { createPreviewLiveSocket, getLatestPreview, startPreview } from "@/services/previews";
 
+const PREVIEW_POLL_INTERVAL_MS = 10000;
+const SOCKET_OPEN_GRACE_MS = 3000;
+const RECONNECT_BASE_DELAY_MS = 2000;
+const RECONNECT_MAX_DELAY_MS = 15000;
+
 interface PreviewStore {
   previewUrl: string | null;
   status: string | null;
@@ -49,7 +54,7 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
     }
   },
   subscribeLive: (projectId) => {
-    const startPolling = () => setInterval(() => void get().refresh(projectId), 10000);
+    const startPolling = () => setInterval(() => void get().refresh(projectId), PREVIEW_POLL_INTERVAL_MS);
     let pollingTimer: ReturnType<typeof setInterval> | null = startPolling();
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let openTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -59,7 +64,7 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
 
     const scheduleReconnect = () => {
       if (stopped || reconnectTimer) return;
-      const delay = Math.min(2000 * Math.max(1, reconnectAttempts + 1), 15000);
+      const delay = Math.min(RECONNECT_BASE_DELAY_MS * (reconnectAttempts + 1), RECONNECT_MAX_DELAY_MS);
       reconnectAttempts += 1;
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
@@ -97,7 +102,7 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
       socket = nextSocket;
       openTimeout = setTimeout(() => {
         ensurePolling();
-      }, 3000);
+      }, SOCKET_OPEN_GRACE_MS);
 
       nextSocket.onopen = () => {
         reconnectAttempts = 0;

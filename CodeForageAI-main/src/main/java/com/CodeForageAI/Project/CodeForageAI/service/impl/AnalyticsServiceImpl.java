@@ -51,8 +51,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return previewUsageCount.get();
     }
 
-    @Override
     @PostConstruct
+    @Override
     public void initializeFromPersistence() {
         long persistedProjectCount = projectRepository.count();
         long persistedChatCount = chatSessionRepository.count();

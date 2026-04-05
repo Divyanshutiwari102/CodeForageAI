@@ -94,8 +94,10 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
         event.preventDefault();
         setHighlightedIndex((prev) => {
           const maxIndex = Math.max(visibleItems.length - 1, 0);
+          if (visibleItems.length === 0) return 0;
           const next = prev + 1;
-          return prev > maxIndex ? 0 : Math.min(next, maxIndex);
+          if (prev > maxIndex) return 0;
+          return next > maxIndex ? 0 : next;
         });
         return;
       }

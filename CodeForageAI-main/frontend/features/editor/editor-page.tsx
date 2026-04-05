@@ -34,6 +34,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [shareLoading, setShareLoading] = useState(false);
   const [commitLoading, setCommitLoading] = useState(false);
   const [aiEditLoading, setAiEditLoading] = useState(false);
+  const [showAiEditDialog, setShowAiEditDialog] = useState(false);
+  const [aiEditInstruction, setAiEditInstruction] = useState("");
 
   const activeTab = useMemo(() => tabs.find((tab) => tab.fileId === activeFileId) ?? null, [tabs, activeFileId]);
   const allFiles = useMemo(() => {
@@ -141,20 +143,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
       toast.error("Open a file first");
       return;
     }
-    const instruction = window.prompt(`AI edit instruction for ${activeTab.title}`);
-    if (!instruction || !instruction.trim()) return;
+    const instruction = aiEditInstruction.trim();
+    if (!instruction) return;
     setAiEditLoading(true);
     try {
-      const response = await aiEditFile(projectId, activeTab.fileId, instruction.trim());
+      const response = await aiEditFile(projectId, activeTab.fileId, instruction);
       updateTabContent(activeTab.fileId, response.content);
       toast.success(`AI updated ${response.path}`);
       await loadTree(projectId);
+      setShowAiEditDialog(false);
+      setAiEditInstruction("");
     } catch {
       toast.error("AI edit failed");
     } finally {
       setAiEditLoading(false);
     }
-  }, [activeTab, projectId, updateTabContent, loadTree]);
+  }, [activeTab, aiEditInstruction, projectId, updateTabContent, loadTree]);
 
   return (
     <div className="h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -171,7 +175,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </button>
           <button
             type="button"
-            onClick={() => void handleAiEditCurrentFile()}
+            onClick={() => {
+              if (!activeTab) {
+                toast.error("Open a file first");
+                return;
+              }
+              setShowAiEditDialog(true);
+            }}
             disabled={aiEditLoading}
             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
           >
@@ -263,6 +273,42 @@ export function EditorPage({ projectId }: { projectId: string }) {
         }}
         onSelect={(file) => void handleQuickOpenSelect(file)}
       />
+      {showAiEditDialog ? (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 p-4" onClick={() => setShowAiEditDialog(false)}>
+          <div
+            className="mx-auto mt-20 w-full max-w-xl rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-medium text-slate-100">AI Edit File</h3>
+              <button
+                type="button"
+                onClick={() => setShowAiEditDialog(false)}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+            <textarea
+              value={aiEditInstruction}
+              onChange={(e) => setAiEditInstruction(e.target.value)}
+              placeholder="Describe the change to apply to the current file..."
+              className="h-28 w-full rounded-md border border-white/10 bg-white/5 p-2 text-xs text-slate-100 outline-none ring-cyan-400 focus:ring-2"
+            />
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                disabled={aiEditLoading || !aiEditInstruction.trim()}
+                onClick={() => void handleAiEditCurrentFile()}
+                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/20 disabled:opacity-60"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Apply AI Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showExportOptions ? (
         <div className="fixed inset-0 z-50 bg-slate-950/70 p-4" onClick={() => setShowExportOptions(false)}>
           <div className="mx-auto mt-20 w-full max-w-2xl rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>

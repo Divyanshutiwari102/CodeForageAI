@@ -43,7 +43,7 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getChatMessages(sessionId, userId));
     }
 
-    @PostMapping("/api/chat/sessions/{sessionId}/commit")
+    @PostMapping("/sessions/{sessionId}/commit")
     public ResponseEntity<ChatCommitResponse> saveChatAsCommit(@PathVariable Long sessionId) {
         Long userId = authUtil.getCurrentUserId();
         return ResponseEntity.ok(chatService.saveChatAsCommit(sessionId, userId));

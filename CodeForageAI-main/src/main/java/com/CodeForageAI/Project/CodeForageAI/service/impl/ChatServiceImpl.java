@@ -23,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Service
@@ -103,7 +104,7 @@ public class ChatServiceImpl implements ChatService {
             fileService.uploadFile(
                     session.getProject().getId(),
                     parsedFile.path(),
-                    content.getBytes(),
+                    content.getBytes(StandardCharsets.UTF_8),
                     "text/plain",
                     userId
             );

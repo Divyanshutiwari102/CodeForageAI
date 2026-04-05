@@ -7,6 +7,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.file.AiEditFileResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatMessage;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatSession;
 import com.CodeForageAI.Project.CodeForageAI.enums.MessageRole;
+import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatMessageRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatSessionRepository;
@@ -100,6 +101,13 @@ public class AiServiceImpl implements AiService {
     @Override
     public AiEditFileResponse editFile(AiEditFileRequest request, Long userId) {
         Long projectId = request.projectId();
+        String instruction = request.instruction().trim();
+        if (instruction.length() < 3) {
+            throw new BadRequestException("Instruction must be at least 3 characters");
+        }
+        if (instruction.length() > 2000) {
+            throw new BadRequestException("Instruction exceeds maximum length");
+        }
         String existingContent = fileService.getFileContent(projectId, request.path(), userId).content();
         String prompt = """
                 You are modifying an existing file.
@@ -109,7 +117,7 @@ public class AiServiceImpl implements AiService {
                 
                 Existing file content:
                 %s
-                """.formatted(request.path(), request.instruction(), existingContent);
+                """.formatted(request.path(), instruction, existingContent);
 
         String updatedContent = chatClient.prompt()
                 .system("You are an expert coding assistant that edits files safely.")
