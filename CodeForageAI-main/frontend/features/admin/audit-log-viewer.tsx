@@ -15,6 +15,27 @@ export function AuditLogViewer() {
   const [traceResults, setTraceResults] = useState<string[]>([]);
   const [traceLoading, setTraceLoading] = useState(false);
 
+  async function openTraceSearch(traceId: string) {
+    setTraceSearchTarget(traceId);
+    setTraceLoading(true);
+    try {
+      const data = await searchCentralizedLogsByTraceId(traceId);
+      const lines =
+        data.data?.result?.flatMap((item) =>
+          (item.values ?? []).map((entry) => {
+            const timestamp = entry[0];
+            const message = entry[1];
+            return `${timestamp} ${message}`;
+          }),
+        ) ?? [];
+      setTraceResults(lines);
+    } catch {
+      setTraceResults(["Centralized log lookup failed"]);
+    } finally {
+      setTraceLoading(false);
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
     getAuditLogs(page, 10, traceFilter || undefined)
@@ -30,36 +51,6 @@ export function AuditLogViewer() {
       mounted = false;
     };
   }, [page, traceFilter]);
-
-  useEffect(() => {
-    if (!traceSearchTarget) return;
-    let mounted = true;
-    setTraceLoading(true);
-    searchCentralizedLogsByTraceId(traceSearchTarget)
-      .then((data) => {
-        if (!mounted) return;
-        const lines =
-          data.data?.result?.flatMap((item) =>
-            (item.values ?? []).map((entry) => {
-              const timestamp = entry[0];
-              const message = entry[1];
-              return `${timestamp} ${message}`;
-            }),
-          ) ?? [];
-        setTraceResults(lines);
-      })
-      .catch(() => {
-        if (mounted) {
-          setTraceResults(["Centralized log lookup failed"]);
-        }
-      })
-      .finally(() => {
-        if (mounted) setTraceLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [traceSearchTarget]);
 
   return (
     <Card className="p-4">
@@ -107,7 +98,9 @@ export function AuditLogViewer() {
                     <button
                       type="button"
                       className="text-left text-cyan-300 hover:text-cyan-200"
-                      onClick={() => setTraceSearchTarget(log.traceId)}
+                      onClick={() => {
+                        void openTraceSearch(log.traceId);
+                      }}
                     >
                       {log.traceId}
                     </button>

@@ -10,7 +10,7 @@ function getOrCreateTraceId(): string {
   const existing = window.sessionStorage.getItem(TRACE_ID_KEY);
   if (existing) return existing;
 
-  let generated = `${Date.now()}-${Math.floor(Math.random() * 1_000_000_000)}`;
+  let generated: string;
   const webCrypto = window.crypto;
   if (webCrypto?.randomUUID) {
     generated = webCrypto.randomUUID();
@@ -18,6 +18,8 @@ function getOrCreateTraceId(): string {
     const bytes = new Uint8Array(8);
     webCrypto.getRandomValues(bytes);
     generated = `${Date.now()}-${Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  } else {
+    generated = `${Date.now()}-${Math.floor(Math.random() * 1_000_000_000)}`;
   }
 
   window.sessionStorage.setItem(TRACE_ID_KEY, generated);
