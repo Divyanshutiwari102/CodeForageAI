@@ -9,6 +9,7 @@ import com.CodeForageAI.Project.CodeForageAI.security.AuthConstants;
 import com.CodeForageAI.Project.CodeForageAI.service.AuthService;
 import com.CodeForageAI.Project.CodeForageAI.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,14 +35,14 @@ public class AuthController {
     String cookieSameSite;
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request, HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletResponse response) {
         AuthResponse authResponse = authService.signup(request);
         addAuthCookie(response, authResponse.token());
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         AuthResponse authResponse = authService.login(request);
         addAuthCookie(response, authResponse.token());
         return ResponseEntity.ok(authResponse);
