@@ -24,6 +24,8 @@ interface ChatStreamEvent {
 }
 
 const CHAT_STREAM_TIMEOUT_MILLISECONDS = 60000;
+const CHAT_STREAM_MAX_RETRIES = 2;
+const CHAT_STREAM_RETRY_DELAY_MILLISECONDS = 600;
 
 function mapRole(role: ChatMessageResponse["role"]): "user" | "assistant" {
   return role === "USER" ? "user" : "assistant";
@@ -91,50 +93,83 @@ export async function streamMessage(
     onFileSaved?: (path: string) => void;
   },
 ): Promise<void> {
-  const base = getApiBaseUrl();
-  const token = getAuthToken();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MILLISECONDS);
+  const tryStream = async (): Promise<void> => {
+    const base = getApiBaseUrl();
+    const token = getAuthToken();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort("timeout"), CHAT_STREAM_TIMEOUT_MILLISECONDS);
+    let didFinish = false;
 
-  try {
-    const response = await fetch(`${base}/chat/stream`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        sessionId: params.sessionId,
-        projectId: Number(params.projectId),
-        prompt: params.prompt,
-      }),
-      signal: controller.signal,
-    });
+    try {
+      const response = await fetch(`${base}/chat/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          sessionId: params.sessionId,
+          projectId: Number(params.projectId),
+          prompt: params.prompt,
+        }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok || !response.body) {
-      const text = await response.text();
-      throw new Error(text || "Failed to stream chat response");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const parsed = parseSseChunk(buffer);
-      buffer = parsed.rest;
-
-      for (const event of parsed.events) {
-        if (event.type === "token" && event.content) handlers.onToken(event.content);
-        if (event.type === "file_saved" && event.content) handlers.onFileSaved?.(event.content);
-        if (event.type === "error") handlers.onError(event.content ?? "Streaming failed");
-        if (event.type === "done") handlers.onDone();
+      if (!response.ok || !response.body) {
+        const text = await response.text();
+        throw new Error(text || "Failed to stream chat response");
       }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parsed = parseSseChunk(buffer);
+        buffer = parsed.rest;
+
+        for (const event of parsed.events) {
+          if (event.type === "token" && event.content) handlers.onToken(event.content);
+          if (event.type === "file_saved" && event.content) handlers.onFileSaved?.(event.content);
+          if (event.type === "error") {
+            didFinish = true;
+            throw new Error(event.content ?? "Streaming failed");
+          }
+          if (event.type === "done") {
+            didFinish = true;
+            handlers.onDone();
+          }
+        }
+      }
+
+      if (!didFinish) {
+        didFinish = true;
+        handlers.onDone();
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Chat stream timed out. Please try again.");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-  } finally {
-    clearTimeout(timeoutId);
+  };
+
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= CHAT_STREAM_MAX_RETRIES; attempt += 1) {
+    try {
+      await tryStream();
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Failed to stream chat response");
+      if (attempt >= CHAT_STREAM_MAX_RETRIES) break;
+      await new Promise((resolve) => setTimeout(resolve, CHAT_STREAM_RETRY_DELAY_MILLISECONDS * (attempt + 1)));
+    }
   }
+
+  handlers.onError(lastError?.message ?? "Failed to stream chat response");
 }
