@@ -28,7 +28,7 @@ public class AuthController {
     AuthService authService;
     UserService userService;
     AuthUtil authUtil;
-    @Value("${auth.cookie.secure:false}")
+    @Value("${auth.cookie.secure:true}")
     boolean cookieSecure;
     @Value("${auth.cookie.same-site:Lax}")
     String cookieSameSite;
