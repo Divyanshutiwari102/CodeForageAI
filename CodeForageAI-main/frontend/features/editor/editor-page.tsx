@@ -1,7 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Download, Search, Share2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,9 +22,28 @@ const HEADER_HEIGHT = 48; // Must match header `h-12` Tailwind class.
 const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((m) => m.ChatPanel), { ssr: false });
 
 export function EditorPage({ projectId }: { projectId: string }) {
-  const { tree, expanded, activeFileId, tabs, loading, error, loadTree, toggleFolder, openFile, setActiveFile, closeTab, updateTabContent } =
-    useFilesStore();
-  const { sessionId, messages, loading: chatLoading, error: chatError, boot, send } = useChatStore();
+  const tree = useFilesStore((state) => state.tree);
+  const expanded = useFilesStore((state) => state.expanded);
+  const activeFileId = useFilesStore((state) => state.activeFileId);
+  const openTabIds = useFilesStore((state) => state.openTabIds);
+  const tabsByFileId = useFilesStore((state) => state.tabsByFileId);
+  const loading = useFilesStore((state) => state.loading);
+  const error = useFilesStore((state) => state.error);
+  const loadTree = useFilesStore((state) => state.loadTree);
+  const toggleFolder = useFilesStore((state) => state.toggleFolder);
+  const openFile = useFilesStore((state) => state.openFile);
+  const setActiveFile = useFilesStore((state) => state.setActiveFile);
+  const closeTab = useFilesStore((state) => state.closeTab);
+  const updateTabContent = useFilesStore((state) => state.updateTabContent);
+
+  const sessionId = useChatStore((state) => state.sessionId);
+  const messageIds = useChatStore((state) => state.messageIds);
+  const messagesById = useChatStore((state) => state.messagesById);
+  const chatLoading = useChatStore((state) => state.loading);
+  const chatError = useChatStore((state) => state.error);
+  const boot = useChatStore((state) => state.boot);
+  const send = useChatStore((state) => state.send);
+
   const [quickOpenVisible, setQuickOpenVisible] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
   const [exportTemplate, setExportTemplate] = useState(false);
@@ -38,7 +56,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [showAiEditDialog, setShowAiEditDialog] = useState(false);
   const [aiEditInstruction, setAiEditInstruction] = useState("");
 
-  const activeTab = useMemo(() => tabs.find((tab) => tab.fileId === activeFileId) ?? null, [tabs, activeFileId]);
+  const tabs = useMemo(() => selectTabs(openTabIds, tabsByFileId), [openTabIds, tabsByFileId]);
+  const messages = useMemo(() => selectMessages(messageIds, messagesById), [messageIds, messagesById]);
+  const activeTab = useMemo(() => (activeFileId ? tabsByFileId[activeFileId] ?? null : null), [tabsByFileId, activeFileId]);
   const allFiles = useMemo(() => {
     const stack = [...tree];
     const files: FileNode[] = [];
@@ -53,29 +73,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
     }
     return files.sort((a, b) => a.id.localeCompare(b.id));
   }, [tree]);
-  const tree = useFilesStore((state) => state.tree);
-  const expanded = useFilesStore((state) => state.expanded);
-  const activeFileId = useFilesStore((state) => state.activeFileId);
-  const openTabIds = useFilesStore((state) => state.openTabIds);
-  const tabsByFileId = useFilesStore((state) => state.tabsByFileId);
-  const loading = useFilesStore((state) => state.loading);
-  const error = useFilesStore((state) => state.error);
-  const loadTree = useFilesStore((state) => state.loadTree);
-  const toggleFolder = useFilesStore((state) => state.toggleFolder);
-  const openFile = useFilesStore((state) => state.openFile);
-  const setActiveFile = useFilesStore((state) => state.setActiveFile);
-  const closeTab = useFilesStore((state) => state.closeTab);
-
-  const messageIds = useChatStore((state) => state.messageIds);
-  const messagesById = useChatStore((state) => state.messagesById);
-  const chatLoading = useChatStore((state) => state.loading);
-  const chatError = useChatStore((state) => state.error);
-  const boot = useChatStore((state) => state.boot);
-  const send = useChatStore((state) => state.send);
-
-  const tabs = useMemo(() => selectTabs(openTabIds, tabsByFileId), [openTabIds, tabsByFileId]);
-  const messages = useMemo(() => selectMessages(messageIds, messagesById), [messageIds, messagesById]);
-  const activeTab = useMemo(() => (activeFileId ? tabsByFileId[activeFileId] ?? null : null), [tabsByFileId, activeFileId]);
 
   useEffect(() => {
     void loadTree(projectId);
@@ -123,7 +120,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     };
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
-  }, [handleExport]);
+  }, []);
 
   const handleQuickOpenSelect = useCallback(async (file: FileNode) => {
     await openFile(file);

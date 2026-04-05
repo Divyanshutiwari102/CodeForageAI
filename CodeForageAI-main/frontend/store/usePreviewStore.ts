@@ -2,13 +2,12 @@
 
 import { create } from "zustand";
 import { createPreviewLiveSocket, getLatestPreview, startPreview } from "@/services/previews";
+import { getErrorMessage } from "@/services/errors";
 
 const PREVIEW_POLL_INTERVAL_MS = 10000;
 const SOCKET_OPEN_GRACE_MS = 3000;
 const RECONNECT_BASE_DELAY_MS = 2000;
 const RECONNECT_MAX_DELAY_MS = 15000;
-import { getLatestPreview, startPreview } from "@/services/previews";
-import { getErrorMessage } from "@/services/errors";
 
 const PREVIEW_LOADING_STATUSES = new Set(["queued", "starting", "building", "running"]);
 const PREVIEW_POLL_INTERVAL_MILLISECONDS = 5000;
@@ -23,8 +22,6 @@ interface PreviewStore {
   load: (projectId: string) => Promise<void>;
   refresh: (projectId: string) => Promise<void>;
   subscribeLive: (projectId: string) => () => void;
-}
-
   poll: (projectId: string) => Promise<void>;
 }
 
