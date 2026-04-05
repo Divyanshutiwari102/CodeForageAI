@@ -13,6 +13,8 @@ interface ApiFileContent {
   content: string;
 }
 
+export const DEFAULT_EDITOR_LANGUAGE = "plaintext";
+
 function languageFromPath(path: string): string {
   const ext = path.split(".").pop()?.toLowerCase();
   const map: Record<string, string> = {
@@ -32,7 +34,14 @@ function languageFromPath(path: string): string {
     rs: "rust",
     sh: "shell",
   };
-  return (ext && map[ext]) || "plaintext";
+  return (ext && map[ext]) || DEFAULT_EDITOR_LANGUAGE;
+}
+
+function encodePathSegments(path: string): string {
+  return path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 }
 
 function makeFolder(id: string, name: string): FileNode {
@@ -87,10 +96,7 @@ export async function getProjectTree(projectId: string): Promise<FileNode[]> {
 }
 
 export async function getFileContent(projectId: string, path: string): Promise<string> {
-  const encodedPath = path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
+  const encodedPath = encodePathSegments(path);
   const { data } = await api.get<ApiFileContent>(`/projects/${projectId}/files/${encodedPath}`);
   return data.content;
 }

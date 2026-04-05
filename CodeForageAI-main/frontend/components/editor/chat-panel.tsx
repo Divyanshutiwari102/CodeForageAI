@@ -22,6 +22,12 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
     element.scrollTop = element.scrollHeight;
   }, [messages, loading]);
 
+  function renderMessageContent(message: ChatMessage) {
+    if (message.content) return message.content;
+    if (message.isStreaming) return <span className="animate-pulse text-slate-400">Thinking...</span>;
+    return null;
+  }
+
   return (
     <section className="flex h-full flex-col border-l border-white/10 bg-slate-950/75">
       <header className="border-b border-white/10 px-3 py-2 text-sm font-medium">AI Copilot</header>
@@ -41,7 +47,7 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
                 isAssistant ? "bg-white/10 text-slate-200" : "ml-auto bg-cyan-500/20 text-cyan-100",
               )}
             >
-              {msg.content || (msg.isStreaming ? <span className="animate-pulse text-slate-400">Thinking...</span> : null)}
+              {renderMessageContent(msg)}
             </div>
           );
         })}

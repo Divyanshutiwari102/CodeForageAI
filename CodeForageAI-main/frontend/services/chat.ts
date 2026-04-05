@@ -22,6 +22,8 @@ interface ChatStreamEvent {
   content: string | null;
 }
 
+const CHAT_STREAM_TIMEOUT_MS = 60000;
+
 function mapRole(role: ChatMessageResponse["role"]): "user" | "assistant" {
   return role === "USER" ? "user" : "assistant";
 }
@@ -88,7 +90,6 @@ export async function streamMessage(
     onFileSaved?: (path: string) => void;
   },
 ): Promise<void> {
-  const CHAT_STREAM_TIMEOUT_MS = 60000;
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
   const token = getAuthToken();
   const controller = new AbortController();

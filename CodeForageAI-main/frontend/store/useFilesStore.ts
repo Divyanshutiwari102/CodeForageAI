@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { EditorTab, FileNode } from "@/types";
-import { getFileContent, getProjectTree } from "@/services/files";
+import { DEFAULT_EDITOR_LANGUAGE, getFileContent, getProjectTree } from "@/services/files";
 
 interface FilesState {
   projectId: string | null;
@@ -57,7 +57,7 @@ export const useFilesStore = create<FilesState>((set, get) => ({
             id: `tab-${node.id}`,
             fileId: node.id,
             title: node.name,
-            language: node.language ?? "plaintext",
+            language: node.language ?? DEFAULT_EDITOR_LANGUAGE,
             content,
           },
         ],
