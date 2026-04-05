@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.controller;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.subscription.PlanLimitsResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.subscription.UsageTodayResponse;
+import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.UsageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,16 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UsageController {
 
     private final UsageService usageService;
+    private final AuthUtil authUtil;
 
     @GetMapping("/today")
     public ResponseEntity<UsageTodayResponse> getTodayUsage() {
-        Long userId = 1L;
+        Long userId = authUtil.getCurrentUserId();
         return ResponseEntity.ok(usageService.getTodayUsageOfUser(userId));
     }
 
     @GetMapping("/limits")
     public ResponseEntity<PlanLimitsResponse> getPlanLimits() {
-        Long userId = 1L;
+        Long userId = authUtil.getCurrentUserId();
         return ResponseEntity.ok(usageService.getCurrentSubscriptionLimitsOfUser(userId));
     }
 }

@@ -21,7 +21,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public UserProfileResponse getProfile(Long userId) {
-        return null;
+        return userRepository.findById(userId)
+                .map(user -> new UserProfileResponse(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getName(),
+                        user.getRole().name()
+                ))
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
     }
 
 
