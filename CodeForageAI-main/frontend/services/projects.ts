@@ -1,7 +1,15 @@
 import type { Analytics, Project, Stats } from "@/types";
 import { api } from "@/services/api";
 
-interface ApiProject {
+interface ApiProjectSummary {
+  id: number;
+  projectName: string;
+  createdAt: string;
+  updatedAt: string;
+  shareToken?: string | null;
+}
+
+interface ApiProjectDetail {
   id: number;
   name: string;
   createdAt: string;
@@ -13,19 +21,11 @@ interface ProjectShareResponse {
   shareToken: string;
 }
 
-interface ApiMetrics {
-  timestamp: string;
-  totalUsers: number;
-  totalProjects: number;
-  totalChatSessions: number;
-  totalMessagesAllTime: number;
-}
-
 export async function getProjects(): Promise<Project[]> {
-  const { data } = await api.get<ApiProject[]>("/projects");
+  const { data } = await api.get<ApiProjectSummary[]>("/projects");
   return data.map((project) => ({
     id: String(project.id),
-    name: project.name,
+    name: project.projectName,
     framework: "Web",
     status: "active",
     updatedAt: project.updatedAt,
@@ -36,15 +36,11 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 export async function getStats(): Promise<Stats[]> {
-  const [{ data: metrics }, { data: analytics }] = await Promise.all([
-    api.get<ApiMetrics>("/metrics"),
-    api.get<Analytics>("/analytics"),
-  ]);
+  const { data: analytics } = await api.get<Analytics>("/analytics");
   return [
-    { label: "Active Projects", value: String(metrics.totalProjects), delta: `+${analytics.projectCreatedCount} created` },
-    { label: "Chat Usage", value: String(analytics.chatUsageCount), delta: `${metrics.totalChatSessions} sessions total` },
-    { label: "Preview Usage", value: String(analytics.previewUsageCount), delta: `${metrics.totalMessagesAllTime} messages all-time` },
-    { label: "Total Users", value: String(metrics.totalUsers), delta: "Platform-wide" },
+    { label: "Projects Created", value: String(analytics.projectCreatedCount), delta: "Recent activity" },
+    { label: "Chat Usage", value: String(analytics.chatUsageCount), delta: "Recent activity" },
+    { label: "Preview Usage", value: String(analytics.previewUsageCount), delta: "Recent activity" },
   ];
 }
 
@@ -54,7 +50,7 @@ export async function shareProject(projectId: string): Promise<string> {
 }
 
 export async function getProjectByShareToken(token: string): Promise<Project> {
-  const { data } = await api.get<ApiProject>(`/projects/share/${token}`);
+  const { data } = await api.get<ApiProjectDetail>(`/projects/share/${token}`);
   return {
     id: String(data.id),
     name: data.name,

@@ -26,7 +26,6 @@ public class WebSecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/login",
             "/api/auth/signup",
-            "/api/stripe/webhook",
             "/api/health",
             "/api/projects/share/**",
             "/swagger-ui/**",
