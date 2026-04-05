@@ -7,11 +7,20 @@ import { useAuthStore } from "@/store/useAuthStore";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-  const { isAuthenticated, isLoading, init } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    void init().finally(() => setIsReady(true));
-  }, [init]);
+    void useAuthStore.getState().init().finally(() => setIsReady(true));
+  }, []);
+
+  useEffect(() => {
+    function onUnauthorized() {
+      router.replace("/login");
+    }
+
+    window.addEventListener("auth:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", onUnauthorized);
+  }, [router]);
 
   useEffect(() => {
     if (isReady && !isLoading && !isAuthenticated) {

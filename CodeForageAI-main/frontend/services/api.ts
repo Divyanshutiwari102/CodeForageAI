@@ -23,10 +23,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       clearAuthToken();
       if (typeof window !== "undefined") {
-        const path = window.location.pathname;
-        if (path !== "/login" && path !== "/signup") {
-          window.location.href = "/login";
-        }
+        window.dispatchEvent(new Event("auth:unauthorized"));
       }
     }
     return Promise.reject(error);

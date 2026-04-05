@@ -16,12 +16,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode === "login") {
-      await login({ username: email, password });
-    } else {
-      await signup({ username: email, name, password });
+    try {
+      if (mode === "login") {
+        await login({ username: email, password });
+      } else {
+        await signup({ username: email, name, password });
+      }
+      router.replace("/dashboard");
+    } catch {
+      return;
     }
-    router.replace("/dashboard");
   }
 
   return (
@@ -55,7 +59,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <span className="text-slate-300">Password</span>
             <input
               required
-              minLength={4}
+              minLength={8}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
