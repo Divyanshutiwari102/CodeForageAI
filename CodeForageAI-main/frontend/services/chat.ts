@@ -88,43 +88,51 @@ export async function streamMessage(
     onFileSaved?: (path: string) => void;
   },
 ): Promise<void> {
+  const STREAM_TIMEOUT_MS = 60000;
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
   const token = getAuthToken();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
-  const response = await fetch(`${base}/chat/stream`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `****** : {}),
-    },
-    body: JSON.stringify({
-      sessionId: params.sessionId,
-      projectId: Number(params.projectId),
-      prompt: params.prompt,
-    }),
-  });
+  try {
+    const response = await fetch(`${base}/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        sessionId: params.sessionId,
+        projectId: Number(params.projectId),
+        prompt: params.prompt,
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok || !response.body) {
-    const text = await response.text();
-    throw new Error(text || "Failed to stream chat response");
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const parsed = parseSseChunk(buffer);
-    buffer = parsed.rest;
-
-    for (const event of parsed.events) {
-      if (event.type === "token" && event.content) handlers.onToken(event.content);
-      if (event.type === "file_saved" && event.content) handlers.onFileSaved?.(event.content);
-      if (event.type === "error") handlers.onError(event.content ?? "Streaming failed");
-      if (event.type === "done") handlers.onDone();
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "Failed to stream chat response");
     }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSseChunk(buffer);
+      buffer = parsed.rest;
+
+      for (const event of parsed.events) {
+        if (event.type === "token" && event.content) handlers.onToken(event.content);
+        if (event.type === "file_saved" && event.content) handlers.onFileSaved?.(event.content);
+        if (event.type === "error") handlers.onError(event.content ?? "Streaming failed");
+        if (event.type === "done") handlers.onDone();
+      }
+    }
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

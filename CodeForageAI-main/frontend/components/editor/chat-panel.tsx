@@ -45,7 +45,9 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
             </div>
           );
         })}
-        {loading ? <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400 animate-pulse">Thinking...</div> : null}
+        {loading && !messages.some((message) => message.isStreaming) ? (
+          <div className="w-fit rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400 animate-pulse">Thinking...</div>
+        ) : null}
         {error ? <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
       </div>
       <form

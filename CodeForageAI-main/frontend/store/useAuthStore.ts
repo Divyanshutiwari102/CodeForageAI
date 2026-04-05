@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const message = extractErrorMessage(error, "Session initialization failed");
       set({ user: null, isAuthenticated: false, isLoading: false, error: message });
       if (process.env.NODE_ENV !== "production") {
-        console.error("Auth init failed", error);
+        console.error("Auth init failed");
       }
       return;
     }
