@@ -6,6 +6,7 @@ import { DashboardTopbar } from "@/components/layout/dashboard-topbar";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdminMetrics, type AdminMetrics } from "@/services/admin";
+import { AuditLogViewer } from "@/features/admin/audit-log-viewer";
 
 function MiniBarChart({
   title,
@@ -155,6 +156,13 @@ export function AdminDashboardPage() {
               />
             </>
           )}
+        </section>
+
+
+        <section className="space-y-2">
+          <h3 className="text-base font-semibold text-white">Audit Trail</h3>
+          <p className="text-sm text-slate-400">Trace-aware request audit logs for debugging across services.</p>
+          <AuditLogViewer />
         </section>
 
         <section className="grid gap-3 sm:grid-cols-3">
