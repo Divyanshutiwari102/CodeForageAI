@@ -21,12 +21,14 @@ import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
 
 @Service
@@ -117,6 +119,9 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .providerSignature(signature)
                     .status(SUCCESS)
                     .build());
+        } catch (DataIntegrityViolationException e) {
+            // Idempotent at DB level: unique payment_id already persisted by concurrent request.
+            return;
 
         } catch (BadRequestException e) {
             throw e;
@@ -131,7 +136,10 @@ public class RazorpayServiceImpl implements RazorpayService {
         mac.init(new SecretKeySpec(keySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         byte[] digest = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
         String expected = toHex(digest);
-        return expected.equals(receivedSignature);
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                receivedSignature.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     private String toHex(byte[] bytes) {
