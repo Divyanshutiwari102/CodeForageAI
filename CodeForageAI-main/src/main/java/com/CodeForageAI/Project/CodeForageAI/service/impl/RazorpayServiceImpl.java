@@ -28,14 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 public class RazorpayServiceImpl implements RazorpayService {
-    private static final PaymentTransactionStatus SUCCESS = PaymentTransactionStatus.SUCCESS;
-
     private final UserRepository userRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -82,15 +82,15 @@ public class RazorpayServiceImpl implements RazorpayService {
             Plan plan = planRepository.findById(request.planId())
                     .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId().toString()));
 
-            var existingTxn = paymentTransactionRepository.findByProviderPaymentId(paymentId);
-            if (existingTxn.isPresent()) {
-                PaymentTransaction tx = existingTxn.get();
-                if (tx.getStatus() != SUCCESS) {
-                    tx.setStatus(SUCCESS);
-                    paymentTransactionRepository.save(tx);
-                }
-                return;
-            }
+            paymentTransactionRepository.saveAndFlush(PaymentTransaction.builder()
+                    .user(user)
+                    .plan(plan)
+                    .paymentProvider("RAZORPAY")
+                    .providerOrderId(orderId)
+                    .providerPaymentId(paymentId)
+                    .providerSignature(signature)
+                    .status(PaymentTransactionStatus.SUCCESS)
+                    .build());
 
             subscriptionRepository.findActiveByUserId(userId).ifPresent(s -> {
                 s.setStatus(SubscriptionStatus.CANCELED);
@@ -110,15 +110,6 @@ public class RazorpayServiceImpl implements RazorpayService {
 
             subscriptionRepository.save(sub);
 
-            paymentTransactionRepository.save(PaymentTransaction.builder()
-                    .user(user)
-                    .plan(plan)
-                    .paymentProvider("RAZORPAY")
-                    .providerOrderId(orderId)
-                    .providerPaymentId(paymentId)
-                    .providerSignature(signature)
-                    .status(SUCCESS)
-                    .build());
         } catch (DataIntegrityViolationException e) {
             // Idempotent at DB level: unique payment_id already persisted by concurrent request.
             return;
@@ -130,7 +121,8 @@ public class RazorpayServiceImpl implements RazorpayService {
         }
     }
 
-    private boolean verifySignature(String orderId, String paymentId, String receivedSignature) throws Exception {
+    private boolean verifySignature(String orderId, String paymentId, String receivedSignature)
+            throws NoSuchAlgorithmException, InvalidKeyException {
         String payload = orderId + "|" + paymentId;
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(keySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
