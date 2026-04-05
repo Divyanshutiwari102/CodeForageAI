@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import { AUTH_UNAUTHORIZED_EVENT } from "@/services/auth-events";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -10,7 +11,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    void useAuthStore
+    useAuthStore
       .getState()
       .init()
       .catch((error) => {
@@ -27,8 +28,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
 
-    window.addEventListener("auth:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("auth:unauthorized", onUnauthorized);
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
   }, [router]);
 
   useEffect(() => {

@@ -24,7 +24,7 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   return typeof message === "string" && message.length > 0 ? message : fallback;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: false,
   isAuthenticated: false,
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      await useAuthStore.getState().loadUser();
+      await get().loadUser();
     } catch (error) {
       const message = extractErrorMessage(error, "Session initialization failed");
       set({ user: null, isAuthenticated: false, isLoading: false, error: message });
