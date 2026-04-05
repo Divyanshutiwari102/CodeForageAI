@@ -88,11 +88,11 @@ export async function streamMessage(
     onFileSaved?: (path: string) => void;
   },
 ): Promise<void> {
-  const STREAM_TIMEOUT_MS = 60000;
+  const CHAT_STREAM_TIMEOUT_MS = 60000;
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
   const token = getAuthToken();
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${base}/chat/stream`, {
