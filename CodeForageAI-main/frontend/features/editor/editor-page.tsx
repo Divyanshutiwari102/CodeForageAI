@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Download, Search, Share2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,10 +17,10 @@ import { exportProjectZip } from "@/services/files";
 import { aiEditFile, saveChatAsCommit } from "@/services/chat";
 import { shareProject } from "@/services/projects";
 import type { FileNode } from "@/types";
+import { selectMessages, selectTabs } from "@/store/selectors";
 
 const HEADER_HEIGHT = 48; // Must match header `h-12` Tailwind class.
 const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((m) => m.ChatPanel), { ssr: false });
-const MemoizedFileTree = memo(FileTree);
 
 export function EditorPage({ projectId }: { projectId: string }) {
   const { tree, expanded, activeFileId, tabs, loading, error, loadTree, toggleFolder, openFile, setActiveFile, closeTab, updateTabContent } =
@@ -52,6 +53,29 @@ export function EditorPage({ projectId }: { projectId: string }) {
     }
     return files.sort((a, b) => a.id.localeCompare(b.id));
   }, [tree]);
+  const tree = useFilesStore((state) => state.tree);
+  const expanded = useFilesStore((state) => state.expanded);
+  const activeFileId = useFilesStore((state) => state.activeFileId);
+  const openTabIds = useFilesStore((state) => state.openTabIds);
+  const tabsByFileId = useFilesStore((state) => state.tabsByFileId);
+  const loading = useFilesStore((state) => state.loading);
+  const error = useFilesStore((state) => state.error);
+  const loadTree = useFilesStore((state) => state.loadTree);
+  const toggleFolder = useFilesStore((state) => state.toggleFolder);
+  const openFile = useFilesStore((state) => state.openFile);
+  const setActiveFile = useFilesStore((state) => state.setActiveFile);
+  const closeTab = useFilesStore((state) => state.closeTab);
+
+  const messageIds = useChatStore((state) => state.messageIds);
+  const messagesById = useChatStore((state) => state.messagesById);
+  const chatLoading = useChatStore((state) => state.loading);
+  const chatError = useChatStore((state) => state.error);
+  const boot = useChatStore((state) => state.boot);
+  const send = useChatStore((state) => state.send);
+
+  const tabs = useMemo(() => selectTabs(openTabIds, tabsByFileId), [openTabIds, tabsByFileId]);
+  const messages = useMemo(() => selectMessages(messageIds, messagesById), [messageIds, messagesById]);
+  const activeTab = useMemo(() => (activeFileId ? tabsByFileId[activeFileId] ?? null : null), [tabsByFileId, activeFileId]);
 
   useEffect(() => {
     void loadTree(projectId);
@@ -223,12 +247,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
           ) : null}
           {!loading && error ? <div className="rounded-md border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
           {!loading && !error && tree.length > 0 ? (
-            <MemoizedFileTree
+            <FileTree
               nodes={tree}
               expanded={expanded}
               activeFileId={activeFileId}
               onToggle={toggleFolder}
-              onOpen={(node) => void openFile(node)}
+              onOpen={openFile}
             />
           ) : null}
         </aside>
