@@ -1,6 +1,6 @@
 import { api } from "@/services/api";
 
-export const PREVIEW_STATUSES = ["queued", "starting", "building", "running", "ready", "error"] as const;
+export const PREVIEW_STATUSES = ["creating", "running", "failed", "terminated"] as const;
 export type PreviewStatus = (typeof PREVIEW_STATUSES)[number];
 
 interface PreviewStatusResponse {
@@ -43,17 +43,4 @@ export async function getLatestPreview(projectId: string): Promise<PreviewState>
 export async function startPreview(projectId: string): Promise<PreviewState> {
   await api.post(`/projects/${projectId}/previews`);
   return getLatestPreview(projectId);
-}
-
-export function createPreviewLiveSocket(projectId: string): WebSocket | null {
-  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!base) return null;
-  let url: URL;
-  try {
-    url = new URL(base);
-  } catch {
-    return null;
-  }
-  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return new WebSocket(`${protocol}//${url.host}/ws/projects/${projectId}/preview`);
 }

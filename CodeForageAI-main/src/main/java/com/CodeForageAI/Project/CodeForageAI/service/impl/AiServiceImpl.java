@@ -26,7 +26,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -50,6 +50,7 @@ public class AiServiceImpl implements AiService {
     RagService ragService;
     AnalyticsService analyticsService;
     ObjectMapper objectMapper;
+    TaskExecutor taskExecutor;
 
     private static final String SYSTEM_PROMPT = """
             You are an expert full-stack developer AI assistant helping users build web applications.
@@ -93,13 +94,14 @@ public class AiServiceImpl implements AiService {
         chatMessageRepository.save(userMessage);
 
         // Delegate streaming to a background thread so this method returns the emitter immediately
-        streamAsync(emitter, session, request, userId);
+        taskExecutor.execute(() -> streamAsync(emitter, session, request, userId));
 
         return emitter;
     }
 
     @Override
     public AiEditFileResponse editFile(AiEditFileRequest request, Long userId) {
+        quotaService.checkTokenQuota(userId);
         Long projectId = request.projectId();
         String instruction = request.instruction().trim();
         if (instruction.length() < 3) {
@@ -138,9 +140,8 @@ public class AiServiceImpl implements AiService {
         return new AiEditFileResponse(request.path(), updatedContent);
     }
 
-    @Async
-    public void streamAsync(SseEmitter emitter, ChatSession session,
-                            ChatStreamRequest request, Long userId) {
+    private void streamAsync(SseEmitter emitter, ChatSession session,
+                             ChatStreamRequest request, Long userId) {
         try {
             // Fetch relevant files from Qdrant and build context
             String enhancedPrompt = buildEnhancedPrompt(session, request.prompt(), userId);
