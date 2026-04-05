@@ -21,8 +21,8 @@ export function Navbar() {
           <a href="#pricing" className="transition hover:text-white">Pricing</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/dashboard"><Button variant="ghost">Dashboard</Button></Link>
-          <Button>Start Building</Button>
+          <Link href="/login"><Button variant="ghost">Sign in</Button></Link>
+          <Link href="/signup"><Button>Start Building</Button></Link>
         </div>
       </div>
     </motion.header>
