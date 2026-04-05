@@ -68,7 +68,7 @@ public class CodeBlockParser {
         if (path.contains("..") || path.contains("//") || path.contains("\0")) {
             return null;
         }
-        if (path.startsWith(".") || path.contains(":")) {
+        if (path.startsWith("./") || path.contains(":")) {
             return null;
         }
         return path;

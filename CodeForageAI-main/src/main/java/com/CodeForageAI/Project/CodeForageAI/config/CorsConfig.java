@@ -24,9 +24,6 @@ public class CorsConfig {
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
-        if (origins.isEmpty()) {
-            throw new IllegalStateException("cors.allowed-origins must be configured");
-        }
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Trace-Id"));

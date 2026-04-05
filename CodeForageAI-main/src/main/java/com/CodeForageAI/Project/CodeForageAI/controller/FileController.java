@@ -141,7 +141,8 @@ public class FileController {
 
         private static boolean isStale(UploadRateState state, long windowSeconds) {
             long now = System.currentTimeMillis();
-            return now - state.lastSeenEpochMillis > (windowSeconds * 4_000L);
+            long staleThresholdMillis = windowSeconds * 4L * 1000L;
+            return now - state.lastSeenEpochMillis > staleThresholdMillis;
         }
     }
 
