@@ -32,7 +32,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse signup(SignupRequest request) {
-        userRepository.findByUsername(request.username()).ifPresent(user -> {
+        userRepository.findByUsernameAndDeletedAtIsNull(request.username()).ifPresent(user -> {
             throw new BadRequestException("User already exists with username: "+request.username());
         });
 
