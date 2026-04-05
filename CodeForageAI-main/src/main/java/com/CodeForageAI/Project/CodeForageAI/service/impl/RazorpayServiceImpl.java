@@ -19,6 +19,7 @@ import com.CodeForageAI.Project.CodeForageAI.service.RazorpayService;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RazorpayServiceImpl implements RazorpayService {
     private final UserRepository userRepository;
@@ -53,35 +55,52 @@ public class RazorpayServiceImpl implements RazorpayService {
     }
 
     @Override
+    @Transactional
     public CreateOrderResponse createOrder(Long userId, CreateOrderRequest request) {
         try {
+            log.info("PAYMENT_AUDIT create_order_started userId={} amount={} currency={}",
+                    userId, request.amount(), request.currency());
             JSONObject options = new JSONObject();
             options.put("amount", request.amount());
             options.put("currency", request.currency());
             options.put("receipt", "rcpt_user_" + userId + "_" + System.currentTimeMillis());
 
             Order order = client().orders.create(options);
+            log.info("PAYMENT_AUDIT create_order_success userId={} orderId={} amount={} currency={}",
+                    userId, order.get("id"), request.amount(), request.currency());
             return new CreateOrderResponse(order.get("id"), request.amount(), request.currency(), keyId);
         } catch (Exception e) {
+            log.error("PAYMENT_AUDIT create_order_failed userId={} amount={} currency={} error={}",
+                    userId, request.amount(), request.currency(), e.getMessage(), e);
             throw new BadRequestException("Failed to create Razorpay order: " + e.getMessage());
         }
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void verifyAndActivate(Long userId, VerifyPaymentRequest request) {
         try {
             String orderId = request.razorpay_order_id();
             String paymentId = request.razorpay_payment_id();
             String signature = request.razorpay_signature();
+            Long planId = request.planId();
+
+            log.info("PAYMENT_AUDIT verify_started userId={} planId={} orderId={} paymentId={}",
+                    userId, planId, orderId, paymentId);
 
             boolean valid = verifySignature(orderId, paymentId, signature);
-            if (!valid) throw new BadRequestException("Invalid Razorpay signature");
+            if (!valid) {
+                log.warn("PAYMENT_AUDIT verify_failed_invalid_signature userId={} planId={} orderId={} paymentId={}",
+                        userId, planId, orderId, paymentId);
+                throw new BadRequestException("Invalid Razorpay signature");
+            }
+            log.info("PAYMENT_AUDIT verify_signature_success userId={} planId={} orderId={} paymentId={}",
+                    userId, planId, orderId, paymentId);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
-            Plan plan = planRepository.findById(request.planId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId().toString()));
+            Plan plan = planRepository.findById(planId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
 
             paymentTransactionRepository.saveAndFlush(PaymentTransaction.builder()
                     .user(user)
@@ -92,10 +111,14 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .providerSignature(signature)
                     .status(PaymentTransactionStatus.SUCCESS)
                     .build());
+            log.info("PAYMENT_AUDIT verify_transaction_persisted userId={} planId={} orderId={} paymentId={}",
+                    userId, planId, orderId, paymentId);
 
             subscriptionRepository.findActiveByUserId(userId).ifPresent(s -> {
                 s.setStatus(SubscriptionStatus.CANCELED);
                 subscriptionRepository.save(s);
+                log.info("PAYMENT_AUDIT verify_existing_subscription_canceled userId={} subscriptionId={}",
+                        userId, s.getId());
             });
 
             Subscription sub = Subscription.builder()
@@ -110,17 +133,27 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .build();
 
             subscriptionRepository.save(sub);
+            log.info("PAYMENT_AUDIT verify_completed_success userId={} planId={} orderId={} paymentId={} subscriptionId={}",
+                    userId, planId, orderId, paymentId, sub.getId());
 
         } catch (DataIntegrityViolationException e) {
             if (isDuplicatePaymentIdViolation(e)) {
                 // Idempotent at DB level: unique payment_id already persisted by concurrent request.
+                log.info("PAYMENT_AUDIT verify_idempotent_duplicate userId={} planId={} orderId={} paymentId={}",
+                        userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id());
                 return;
             }
+            log.error("PAYMENT_AUDIT verify_failed_integrity userId={} planId={} orderId={} paymentId={} error={}",
+                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage(), e);
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
 
         } catch (BadRequestException e) {
+            log.warn("PAYMENT_AUDIT verify_failed_bad_request userId={} planId={} orderId={} paymentId={} error={}",
+                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage());
             throw e;
         } catch (Exception e) {
+            log.error("PAYMENT_AUDIT verify_failed_exception userId={} planId={} orderId={} paymentId={} error={}",
+                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage(), e);
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
         }
     }
