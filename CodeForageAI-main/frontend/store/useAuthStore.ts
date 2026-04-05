@@ -1,10 +1,10 @@
 "use client";
 
 import { create } from "zustand";
-import axios from "axios";
 import type { User } from "@/types";
 import { getCurrentUser, login as loginRequest, signup as signupRequest } from "@/services/auth";
 import { clearAuthToken, getAuthToken, setAuthToken } from "@/services/token";
+import { getErrorMessage } from "@/services/errors";
 
 interface AuthState {
   user: User | null;
@@ -16,12 +16,6 @@ interface AuthState {
   signup: (payload: { username: string; name: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
   logout: () => void;
-}
-
-function extractErrorMessage(error: unknown, fallback: string): string {
-  if (!axios.isAxiosError(error)) return fallback;
-  const message = error.response?.data?.message;
-  return typeof message === "string" && message.length > 0 ? message : fallback;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -38,7 +32,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await get().loadUser();
     } catch (error) {
-      const message = extractErrorMessage(error, "Session initialization failed");
+      const message = getErrorMessage(error, "Session initialization failed");
       set({ user: null, isAuthenticated: false, isLoading: false, error: message });
       return;
     }
@@ -51,7 +45,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user, isAuthenticated: true, isLoading: false });
       return true;
     } catch (error) {
-      const message = extractErrorMessage(error, "Login failed. Please try again.");
+      const message = getErrorMessage(error, "Login failed. Please try again.");
       clearAuthToken();
       set({
         user: null,
@@ -70,7 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user, isAuthenticated: true, isLoading: false });
       return true;
     } catch (error) {
-      const message = extractErrorMessage(error, "Unable to create account. Please try again.");
+      const message = getErrorMessage(error, "Unable to create account. Please try again.");
       clearAuthToken();
       set({
         user: null,
@@ -87,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      const message = extractErrorMessage(error, "Failed to load user profile");
+      const message = getErrorMessage(error, "Failed to load user profile");
       clearAuthToken();
       set({ user: null, isAuthenticated: false, isLoading: false, error: message });
       throw new Error(message);

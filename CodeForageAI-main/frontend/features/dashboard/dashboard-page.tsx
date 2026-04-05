@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { shallow } from "zustand/shallow";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { DashboardTopbar } from "@/components/layout/dashboard-topbar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +10,15 @@ import { StatsCard } from "@/features/dashboard/stats-card";
 import { ProjectCard } from "@/features/dashboard/project-card";
 
 export function DashboardPage() {
-  const { projects, stats, loading, loadDashboard } = useProjectsStore();
+  const { projects, stats, loading, loadDashboard } = useProjectsStore(
+    (state) => ({
+      projects: state.projects,
+      stats: state.stats,
+      loading: state.loading,
+      loadDashboard: state.loadDashboard,
+    }),
+    shallow,
+  );
 
   useEffect(() => {
     loadDashboard();

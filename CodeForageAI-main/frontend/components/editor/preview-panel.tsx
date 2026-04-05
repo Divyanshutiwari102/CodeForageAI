@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { ExternalLink, Play, RotateCw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
+import { shallow } from "zustand/shallow";
 import { usePreviewStore } from "@/store/usePreviewStore";
 
 interface Props {
@@ -10,7 +11,17 @@ interface Props {
 }
 
 export function PreviewPanel({ projectId }: Props) {
-  const { previewUrl, loading, error, message, load, refresh } = usePreviewStore();
+  const { previewUrl, loading, error, message, load, refresh } = usePreviewStore(
+    (state) => ({
+      previewUrl: state.previewUrl,
+      loading: state.loading,
+      error: state.error,
+      message: state.message,
+      load: state.load,
+      refresh: state.refresh,
+    }),
+    shallow,
+  );
 
   useEffect(() => {
     void load(projectId);

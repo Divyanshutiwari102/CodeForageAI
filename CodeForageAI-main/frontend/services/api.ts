@@ -23,6 +23,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const suppressToast = error?.config?.metadata?.suppressErrorToast === true;
     const statusCode = error.response?.status;
     if (statusCode === 401) {
       clearAuthToken();
@@ -30,10 +31,12 @@ api.interceptors.response.use(
         window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
       }
     }
-    emitApiError({
-      message: getErrorMessage(error),
-      statusCode,
-    });
+    if (!suppressToast) {
+      emitApiError({
+        message: getErrorMessage(error),
+        statusCode,
+      });
+    }
     return Promise.reject(error);
   },
 );
