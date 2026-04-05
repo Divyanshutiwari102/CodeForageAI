@@ -21,6 +21,11 @@ spring:
     init:
       mode: never
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
@@ -31,6 +36,18 @@ spring:
       embedding:
         options:
           model: text-embedding-ada-002
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
 
 jwt:
   secret-key: ${JWT_SECRET:CodeForageAISecretKey2024XYZabcdefghijklmnopqrstuvwxyz0123456789AB}
@@ -43,11 +60,20 @@ minio:
 
 payment:
   provider: razorpay
+  rate-limit:
+    verify-max-requests: ${PAYMENT_VERIFY_RATE_LIMIT_MAX_REQUESTS:10}
+    verify-window-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_WINDOW_SECONDS:60}
+    fail-open-on-redis-error: ${PAYMENT_VERIFY_RATE_LIMIT_FAIL_OPEN:true}
+    circuit-breaker:
+      failure-threshold: ${PAYMENT_VERIFY_RATE_LIMIT_CB_FAILURE_THRESHOLD:5}
+      open-duration-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_CB_OPEN_DURATION_SECONDS:30}
+  monitoring:
+    failure-rate-alert-threshold-percent: ${PAYMENT_MONITORING_FAILURE_RATE_ALERT_THRESHOLD_PERCENT:30}
+    failure-rate-alert-min-events: ${PAYMENT_MONITORING_FAILURE_RATE_ALERT_MIN_EVENTS:20}
 
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}
   key-secret: ${RAZORPAY_KEY_SECRET}
-  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 
 qdrant:
@@ -71,3 +97,36 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+observability:
+  logs:
+    loki:
+      endpoint: ${LOKI_ENDPOINT:http://localhost:3100}
+  alerts:
+    email:
+      enabled: ${OBS_ALERT_EMAIL_ENABLED:false}
+      recipients: ${OBS_ALERT_EMAIL_RECIPIENTS:}
+    slack:
+      enabled: ${OBS_ALERT_SLACK_ENABLED:false}
+      webhook-url: ${OBS_ALERT_SLACK_WEBHOOK_URL:}
+      channel: ${OBS_ALERT_SLACK_CHANNEL:#alerts}
+      username: ${OBS_ALERT_SLACK_USERNAME:CodeForageAI Alerts}

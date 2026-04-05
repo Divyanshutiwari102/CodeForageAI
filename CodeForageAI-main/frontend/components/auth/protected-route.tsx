@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AUTH_UNAUTHORIZED_EVENT } from "@/services/auth-events";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: {
+  children: React.ReactNode;
+  requiredRole?: "USER" | "ADMIN";
+}) {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
 
   useEffect(() => {
     useAuthStore
@@ -32,14 +38,20 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isReady && !isLoading && !isAuthenticated) {
       router.replace("/login");
+      return;
     }
-  }, [isReady, isLoading, isAuthenticated, router]);
+
+    if (isReady && !isLoading && isAuthenticated && requiredRole && user?.role !== requiredRole) {
+      router.replace("/dashboard");
+    }
+  }, [isReady, isLoading, isAuthenticated, requiredRole, user?.role, router]);
 
   if (!isReady || isLoading) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-slate-400">Checking session...</div>;
   }
 
   if (!isAuthenticated) return null;
+  if (requiredRole && user?.role !== requiredRole) return null;
 
   return <>{children}</>;
 }

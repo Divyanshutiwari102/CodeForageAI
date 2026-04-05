@@ -7,6 +7,7 @@ import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,5 +60,19 @@ public class FileController {
         return ResponseEntity.noContent().build();
     }
 
-}
+    @GetMapping(value = "/export", produces = "application/zip")
+    public ResponseEntity<byte[]> exportProject(
+            @PathVariable Long projectId,
+            @RequestParam(name = "path", required = false) List<String> selectedPaths,
+            @RequestParam(name = "template", defaultValue = "false") boolean asTemplate
+    ) {
+        Long userId = authUtil.getCurrentUserId();
+        byte[] zipBytes = fileService.exportProjectZip(projectId, userId, selectedPaths, asTemplate);
+        String fileName = asTemplate ? "project-template-" + projectId + ".zip" : "project-" + projectId + ".zip";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .body(zipBytes);
+    }
 
+}

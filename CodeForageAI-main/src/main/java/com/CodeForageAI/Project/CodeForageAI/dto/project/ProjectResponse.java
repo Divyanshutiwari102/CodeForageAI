@@ -9,6 +9,7 @@ public record ProjectResponse(
         String name,
         Instant createdAt,
         Instant updatedAt,
-        UserProfileResponse owner
+        UserProfileResponse owner,
+        String shareToken
 ) {
 }

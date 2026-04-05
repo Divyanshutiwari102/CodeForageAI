@@ -13,4 +13,6 @@ public interface FileService {
     FileNode uploadFile(Long projectId, String path, byte[] content, String contentType, Long userId);
 
     void deleteFile(Long projectId, String path, Long userId);
+
+    byte[] exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate);
 }

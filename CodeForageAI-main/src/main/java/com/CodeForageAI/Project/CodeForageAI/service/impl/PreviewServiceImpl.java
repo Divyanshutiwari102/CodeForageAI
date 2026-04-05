@@ -10,6 +10,7 @@ import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.PreviewRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.PreviewService;
+import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.NetworkingV1Api;
@@ -35,6 +36,7 @@ public class PreviewServiceImpl implements PreviewService {
     private final KubernetesConfig kubernetesConfig;
     private final PreviewRepository previewRepository;
     private final ProjectRepository projectRepository;
+    private final AnalyticsService analyticsService;
 
     private static final String NAMESPACE_PREFIX = "preview-";
     private static final int VITE_PORT = 3000;
@@ -42,6 +44,7 @@ public class PreviewServiceImpl implements PreviewService {
     @Override
     public PreviewResponse startPreview(Long projectId, Long userId) {
         log.info("Starting preview for project {} by user {}", projectId, userId);
+        analyticsService.trackPreviewUsed();
         Project project = projectRepository.findAccessibleProjectById(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId.toString()));
 

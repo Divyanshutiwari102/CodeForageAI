@@ -23,13 +23,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Service
@@ -194,6 +199,50 @@ public class FileServiceImpl implements FileService {
         }
 
         projectFileRepository.delete(file);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
+        getAccessibleProject(projectId, userId);
+        List<ProjectFile> files = projectFileRepository.findByProject_Id(projectId);
+        Set<String> selectedNormalizedPaths = selectedPaths == null
+                ? Set.of()
+                : selectedPaths.stream()
+                .filter(path -> path != null && !path.isBlank())
+                .map(this::normalizePath)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<ProjectFile> filesToExport = selectedNormalizedPaths.isEmpty()
+                ? files
+                : files.stream()
+                .filter(file -> selectedNormalizedPaths.contains(normalizePath(file.getPath())))
+                .toList();
+
+        try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+             ZipOutputStream zipStream = new ZipOutputStream(byteStream)) {
+            for (ProjectFile file : filesToExport) {
+                String path = normalizePath(file.getPath());
+                String entryPath = asTemplate ? "template/" + path : path;
+                ZipEntry entry = new ZipEntry(entryPath);
+                try (InputStream stream = minioClient.getObject(
+                        GetObjectArgs.builder()
+                                .bucket(minioConfig.getBucket())
+                                .object(file.getMinioObjectKey())
+                                .build()
+                )) {
+                    zipStream.putNextEntry(entry);
+                    stream.transferTo(zipStream);
+                    zipStream.closeEntry();
+                } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Failed to read file content for path: " + path, e);
+                }
+            }
+            zipStream.finish();
+            return byteStream.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to generate project zip export", e);
+        }
     }
 
     private Project getAccessibleProject(Long projectId, Long userId) {

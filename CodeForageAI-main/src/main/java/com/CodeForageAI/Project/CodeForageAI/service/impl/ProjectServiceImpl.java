@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.service.impl;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectShareResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectSummaryResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.Project;
 import com.CodeForageAI.Project.CodeForageAI.entity.ProjectMember;
@@ -16,6 +17,7 @@ import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.ProjectService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
+import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class ProjectServiceImpl implements ProjectService {
     ProjectMemberRepository projectMemberRepository;
     AuthUtil authUtil;
     QuotaService quotaService;
+    AnalyticsService analyticsService;
 
     @Override
     public ProjectResponse createProject(ProjectRequest request) {
@@ -50,6 +54,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = Project.builder()
                 .name(request.name())
                 .isPublic(false)
+                .shareToken(generateShareToken())
                 .build();
         project = projectRepository.save(project);
 
@@ -64,6 +69,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .project(project)
                 .build();
         projectMemberRepository.save(projectMember);
+        analyticsService.trackProjectCreated();
 
         return projectMapper.toProjectResponse(project);
     }
@@ -102,10 +108,33 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.save(project);
     }
 
+    @Override
+    public ProjectShareResponse ensureShareToken(Long id) {
+        Long userId = authUtil.getCurrentUserId();
+        Project project = getAccessibleProjectById(id, userId);
+        if (project.getShareToken() == null || project.getShareToken().isBlank()) {
+            project.setShareToken(generateShareToken());
+            projectRepository.save(project);
+        }
+        return new ProjectShareResponse(project.getShareToken());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProjectResponse getProjectByShareToken(String shareToken) {
+        Project project = projectRepository.findByShareTokenAndDeletedAtIsNull(shareToken)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", shareToken));
+        return projectMapper.toProjectResponse(project);
+    }
+
     ///  INTERNAL FUNCTIONS
 
     public Project getAccessibleProjectById(Long projectId, Long userId) {
         return projectRepository.findAccessibleProjectById(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId.toString()));
+    }
+
+    private String generateShareToken() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 }

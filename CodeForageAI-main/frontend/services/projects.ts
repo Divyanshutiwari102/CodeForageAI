@@ -1,24 +1,68 @@
-import type { Project, Stats } from "@/types";
+import type { Analytics, Project, Stats } from "@/types";
+import { api } from "@/services/api";
 
-const DEMO_PROJECTS: Project[] = [
-  { id: "1", name: "CodeForage Landing", framework: "Next.js", status: "active", updatedAt: "2m ago", stars: 23, description: "High-converting landing for AI workflows" },
-  { id: "2", name: "AI Pair Dashboard", framework: "React", status: "active", updatedAt: "15m ago", stars: 9, description: "Analytics and collaboration dashboard" },
-  { id: "3", name: "Realtime IDE", framework: "TypeScript", status: "draft", updatedAt: "1h ago", stars: 41, description: "Code editor with assistant and live preview" },
-];
+interface ApiProject {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  shareToken?: string | null;
+}
 
-const DEMO_STATS: Stats[] = [
-  { label: "Active Projects", value: "12", delta: "+2 this week" },
-  { label: "AI Generations", value: "1,248", delta: "+14%" },
-  { label: "Deployments", value: "94", delta: "+6%" },
-  { label: "Team Members", value: "8", delta: "+1 this month" },
-];
+interface ProjectShareResponse {
+  shareToken: string;
+}
+
+interface ApiMetrics {
+  timestamp: string;
+  totalUsers: number;
+  totalProjects: number;
+  totalChatSessions: number;
+  totalMessagesAllTime: number;
+}
 
 export async function getProjects(): Promise<Project[]> {
-  await new Promise((r) => setTimeout(r, 300));
-  return DEMO_PROJECTS;
+  const { data } = await api.get<ApiProject[]>("/projects");
+  return data.map((project) => ({
+    id: String(project.id),
+    name: project.name,
+    framework: "Web",
+    status: "active",
+    updatedAt: project.updatedAt,
+    stars: 0,
+    description: "Project workspace",
+    shareToken: project.shareToken ?? undefined,
+  }));
 }
 
 export async function getStats(): Promise<Stats[]> {
-  await new Promise((r) => setTimeout(r, 300));
-  return DEMO_STATS;
+  const [{ data: metrics }, { data: analytics }] = await Promise.all([
+    api.get<ApiMetrics>("/metrics"),
+    api.get<Analytics>("/analytics"),
+  ]);
+  return [
+    { label: "Active Projects", value: String(metrics.totalProjects), delta: `+${analytics.projectCreatedCount} created` },
+    { label: "Chat Usage", value: String(analytics.chatUsageCount), delta: `${metrics.totalChatSessions} sessions total` },
+    { label: "Preview Usage", value: String(analytics.previewUsageCount), delta: `${metrics.totalMessagesAllTime} messages all-time` },
+    { label: "Total Users", value: String(metrics.totalUsers), delta: "Platform-wide" },
+  ];
+}
+
+export async function shareProject(projectId: string): Promise<string> {
+  const { data } = await api.post<ProjectShareResponse>(`/projects/${projectId}/share`);
+  return data.shareToken;
+}
+
+export async function getProjectByShareToken(token: string): Promise<Project> {
+  const { data } = await api.get<ApiProject>(`/projects/share/${token}`);
+  return {
+    id: String(data.id),
+    name: data.name,
+    framework: "Web",
+    status: "active",
+    updatedAt: data.updatedAt,
+    stars: 0,
+    description: "Shared project workspace",
+    shareToken: token,
+  };
 }

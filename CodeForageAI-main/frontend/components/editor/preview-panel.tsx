@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function PreviewPanel({ projectId }: Props) {
+  const { previewUrl, loading, error, message, load, refresh, subscribeLive } = usePreviewStore();
   const previewUrl = usePreviewStore((state) => state.previewUrl);
   const loading = usePreviewStore((state) => state.loading);
   const error = usePreviewStore((state) => state.error);
@@ -20,6 +21,10 @@ export function PreviewPanel({ projectId }: Props) {
   useEffect(() => {
     void load(projectId);
   }, [load, projectId]);
+
+  useEffect(() => {
+    return subscribeLive(projectId);
+  }, [projectId, subscribeLive]);
 
   async function handleRefresh() {
     const toastId = toast.loading("Refreshing preview...");

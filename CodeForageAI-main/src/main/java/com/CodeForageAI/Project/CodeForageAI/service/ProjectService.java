@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.service;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectShareResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectSummaryResponse;
 
 import java.util.List;
@@ -16,4 +17,8 @@ public interface ProjectService {
     ProjectResponse updateProject(Long id, ProjectRequest request);
 
     void softDelete(Long id);
+
+    ProjectShareResponse ensureShareToken(Long id);
+
+    ProjectResponse getProjectByShareToken(String shareToken);
 }

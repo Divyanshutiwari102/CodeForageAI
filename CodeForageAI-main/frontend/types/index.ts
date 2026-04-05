@@ -6,6 +6,7 @@ export interface User {
   email: string;
   avatarUrl?: string;
   plan: "free" | "pro";
+  role: "USER" | "ADMIN";
 }
 
 export interface Project {
@@ -16,12 +17,20 @@ export interface Project {
   updatedAt: string;
   stars: number;
   description: string;
+  shareToken?: string;
 }
 
 export interface Stats {
   label: string;
   value: string;
   delta: string;
+}
+
+export interface Analytics {
+  timestamp: string;
+  projectCreatedCount: number;
+  chatUsageCount: number;
+  previewUsageCount: number;
 }
 
 export interface FileNode {

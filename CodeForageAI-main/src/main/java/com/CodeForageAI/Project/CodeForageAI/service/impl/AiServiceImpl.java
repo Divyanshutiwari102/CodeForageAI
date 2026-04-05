@@ -2,9 +2,12 @@ package com.CodeForageAI.Project.CodeForageAI.service.impl;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatStreamEvent;
 import com.CodeForageAI.Project.CodeForageAI.dto.chat.ChatStreamRequest;
+import com.CodeForageAI.Project.CodeForageAI.dto.file.AiEditFileRequest;
+import com.CodeForageAI.Project.CodeForageAI.dto.file.AiEditFileResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatMessage;
 import com.CodeForageAI.Project.CodeForageAI.entity.ChatSession;
 import com.CodeForageAI.Project.CodeForageAI.enums.MessageRole;
+import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatMessageRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatSessionRepository;
@@ -12,6 +15,7 @@ import com.CodeForageAI.Project.CodeForageAI.service.AiService;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
 import com.CodeForageAI.Project.CodeForageAI.service.RagService;
+import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
 import com.CodeForageAI.Project.CodeForageAI.util.CodeBlockParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -44,6 +48,7 @@ public class AiServiceImpl implements AiService {
     FileService fileService;
     QuotaService quotaService;
     RagService ragService;
+    AnalyticsService analyticsService;
     ObjectMapper objectMapper;
 
     private static final String SYSTEM_PROMPT = """
@@ -69,6 +74,7 @@ public class AiServiceImpl implements AiService {
     public SseEmitter streamChat(ChatStreamRequest request, Long userId) {
         log.info("AI stream request: sessionId={} projectId={} userId={}", request.sessionId(), request.projectId(), userId);
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
+        analyticsService.trackChatUsed();
 
         // Check token quota before proceeding
         quotaService.checkTokenQuota(userId);
@@ -90,6 +96,46 @@ public class AiServiceImpl implements AiService {
         streamAsync(emitter, session, request, userId);
 
         return emitter;
+    }
+
+    @Override
+    public AiEditFileResponse editFile(AiEditFileRequest request, Long userId) {
+        Long projectId = request.projectId();
+        String instruction = request.instruction().trim();
+        if (instruction.length() < 3) {
+            throw new BadRequestException("Instruction must be at least 3 characters");
+        }
+        if (instruction.length() > 2000) {
+            throw new BadRequestException("Instruction exceeds maximum length");
+        }
+        String existingContent = fileService.getFileContent(projectId, request.path(), userId).content();
+        String prompt = """
+                You are modifying an existing file.
+                Return only the full updated file content with no markdown fences.
+                File path: %s
+                Instruction: %s
+                
+                Existing file content:
+                %s
+                """.formatted(request.path(), instruction, existingContent);
+
+        String updatedContent = chatClient.prompt()
+                .system("You are an expert coding assistant that edits files safely.")
+                .user(prompt)
+                .call()
+                .content();
+        if (updatedContent == null) {
+            throw new IllegalStateException("AI returned empty edit response");
+        }
+
+        fileService.uploadFile(
+                projectId,
+                request.path(),
+                updatedContent.getBytes(StandardCharsets.UTF_8),
+                detectContentType(request.path()),
+                userId
+        );
+        return new AiEditFileResponse(request.path(), updatedContent);
     }
 
     @Async

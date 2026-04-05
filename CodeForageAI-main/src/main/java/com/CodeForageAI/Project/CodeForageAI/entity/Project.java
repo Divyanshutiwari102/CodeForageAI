@@ -19,7 +19,8 @@ import java.time.Instant;
         indexes = {
                 @Index(name = "idx_projects_updated_at_desc", columnList = "updated_at DESC, deleted_at"),
                 @Index(name = "idx_projects_deleted_at_updated_at_desc", columnList = "deleted_at, updated_at DESC"),
-                @Index(name = "idx_project_deleted_at", columnList = "deleted_at")
+                @Index(name = "idx_project_deleted_at", columnList = "deleted_at"),
+                @Index(name = "idx_projects_share_token", columnList = "share_token", unique = true)
         }
 )
 public class Project {
@@ -32,6 +33,9 @@ public class Project {
     String name;
 
     Boolean isPublic = false;
+
+    @Column(name = "share_token", unique = true, length = 64)
+    String shareToken;
 
     @CreationTimestamp
     Instant createdAt;

@@ -1,6 +1,12 @@
 "use client";
 
 import { create } from "zustand";
+import { createPreviewLiveSocket, getLatestPreview, startPreview } from "@/services/previews";
+
+const PREVIEW_POLL_INTERVAL_MS = 10000;
+const SOCKET_OPEN_GRACE_MS = 3000;
+const RECONNECT_BASE_DELAY_MS = 2000;
+const RECONNECT_MAX_DELAY_MS = 15000;
 import { getLatestPreview, startPreview } from "@/services/previews";
 import { getErrorMessage } from "@/services/errors";
 
@@ -16,6 +22,9 @@ interface PreviewStore {
   error: string | null;
   load: (projectId: string) => Promise<void>;
   refresh: (projectId: string) => Promise<void>;
+  subscribeLive: (projectId: string) => () => void;
+}
+
   poll: (projectId: string) => Promise<void>;
 }
 
@@ -93,5 +102,84 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
       await new Promise((resolve) => setTimeout(resolve, PREVIEW_POLL_INTERVAL_MILLISECONDS));
     }
     set({ loading: false, error: "Preview startup timed out after maximum polling attempts" });
+  },
+  subscribeLive: (projectId) => {
+    const startPolling = () => setInterval(() => void get().refresh(projectId), PREVIEW_POLL_INTERVAL_MS);
+    let pollingTimer: ReturnType<typeof setInterval> | null = startPolling();
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let openTimeout: ReturnType<typeof setTimeout> | null = null;
+    let socket: WebSocket | null = null;
+    let reconnectAttempts = 0;
+    let stopped = false;
+
+    const scheduleReconnect = () => {
+      if (stopped || reconnectTimer) return;
+      const delay = Math.min(RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_DELAY_MS);
+      reconnectAttempts += 1;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connectWebSocket();
+      }, delay);
+    };
+
+    const clearOpenTimeout = () => {
+      if (openTimeout) {
+        clearTimeout(openTimeout);
+        openTimeout = null;
+      }
+    };
+
+    const ensurePolling = () => {
+      if (!pollingTimer) pollingTimer = startPolling();
+    };
+
+    const stopPolling = () => {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    };
+
+    const connectWebSocket = () => {
+      if (stopped) return;
+      const nextSocket = createPreviewLiveSocket(projectId);
+      if (!nextSocket) {
+        ensurePolling();
+        scheduleReconnect();
+        return;
+      }
+
+      socket = nextSocket;
+      openTimeout = setTimeout(() => {
+        ensurePolling();
+      }, SOCKET_OPEN_GRACE_MS);
+
+      nextSocket.onopen = () => {
+        reconnectAttempts = 0;
+        clearOpenTimeout();
+        stopPolling();
+      };
+      nextSocket.onmessage = () => {
+        void get().refresh(projectId);
+      };
+      nextSocket.onerror = () => {
+        ensurePolling();
+      };
+      nextSocket.onclose = () => {
+        ensurePolling();
+        clearOpenTimeout();
+        scheduleReconnect();
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      stopped = true;
+      if (socket) socket.close();
+      clearOpenTimeout();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (pollingTimer) clearInterval(pollingTimer);
+    };
   },
 }));

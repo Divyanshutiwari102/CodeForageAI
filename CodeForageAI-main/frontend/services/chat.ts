@@ -18,6 +18,16 @@ interface ChatMessageResponse {
   createdAt: string;
 }
 
+interface ChatCommitResponse {
+  filesCommitted: number;
+  message: string;
+}
+
+interface AiEditFileResponse {
+  path: string;
+  content: string;
+}
+
 interface ChatStreamEvent {
   type: "token" | "file_saved" | "done" | "error";
   content: string | null;
@@ -44,18 +54,25 @@ function parseSseChunk(buffer: string): { events: ChatStreamEvent[]; rest: strin
   const events: ChatStreamEvent[] = [];
 
   for (const block of parts) {
-    const line = block
-      .split("\n")
-      .map((l) => l.trim())
-      .find((l) => l.startsWith("data:"));
-    if (!line) continue;
-    const raw = line.slice(5).trim();
-    if (!raw) continue;
-    try {
-      const parsed = JSON.parse(raw) as ChatStreamEvent;
-      events.push(parsed);
-    } catch {
-      continue;
+    const lines = block.split("\n").map((line) => line.trim());
+    const dataLines = lines.filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim());
+    if (dataLines.length === 0) continue;
+    const merged = dataLines.filter(Boolean).join("\n");
+    if (merged) {
+      try {
+        events.push(JSON.parse(merged) as ChatStreamEvent);
+        continue;
+      } catch {
+        // fall through to per-line parsing
+      }
+    }
+    for (const raw of dataLines) {
+      if (!raw) continue;
+      try {
+        events.push(JSON.parse(raw) as ChatStreamEvent);
+      } catch {
+        continue;
+      }
     }
   }
 
@@ -178,4 +195,22 @@ export async function streamMessage(
   }
 
   handlers.onError(lastError?.message ?? "Failed to stream chat response");
+}
+
+export async function saveChatAsCommit(sessionId: number): Promise<ChatCommitResponse> {
+  const { data } = await api.post<ChatCommitResponse>(`/chat/sessions/${sessionId}/commit`);
+  return data;
+}
+
+export async function aiEditFile(
+  projectId: string,
+  path: string,
+  instruction: string,
+): Promise<AiEditFileResponse> {
+  const { data } = await api.post<AiEditFileResponse>("/chat/edit-file", {
+    projectId: Number(projectId),
+    path,
+    instruction,
+  });
+  return data;
 }

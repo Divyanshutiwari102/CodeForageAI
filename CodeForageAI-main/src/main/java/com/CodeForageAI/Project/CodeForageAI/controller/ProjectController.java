@@ -2,6 +2,7 @@ package com.CodeForageAI.Project.CodeForageAI.controller;
 
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectRequest;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectShareResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.project.ProjectSummaryResponse;
 import com.CodeForageAI.Project.CodeForageAI.service.ProjectService;
 import jakarta.validation.Valid;
@@ -45,8 +46,17 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
-}
+    @PostMapping("/{id}/share")
+    public ResponseEntity<ProjectShareResponse> shareProject(@PathVariable Long id) {
+        return ResponseEntity.ok(projectService.ensureShareToken(id));
+    }
 
+    @GetMapping("/share/{token}")
+    public ResponseEntity<ProjectResponse> getProjectByShareToken(@PathVariable String token) {
+        return ResponseEntity.ok(projectService.getProjectByShareToken(token));
+    }
+
+}
 
 
 

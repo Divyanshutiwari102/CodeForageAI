@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Save, Send } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/utils/cn";
 
@@ -12,9 +12,11 @@ interface Props {
   loading: boolean;
   error?: string | null;
   onSend: (message: string) => Promise<void>;
+  onSaveAsCommit?: () => Promise<void>;
+  commitLoading?: boolean;
 }
 
-export function ChatPanel({ messages, loading, error, onSend }: Props) {
+export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, commitLoading = false }: Props) {
   const [input, setInput] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,19 @@ export function ChatPanel({ messages, loading, error, onSend }: Props) {
   return (
     <section className="flex h-full flex-col border-l border-white/10 bg-slate-950/75">
       <header className="border-b border-white/10 px-3 py-2 text-sm font-medium">AI Copilot</header>
+      {onSaveAsCommit ? (
+        <div className="border-b border-white/10 px-3 py-2">
+          <button
+            type="button"
+            disabled={commitLoading}
+            onClick={() => void onSaveAsCommit()}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 hover:bg-white/10 disabled:opacity-60"
+          >
+            <Save className="h-3.5 w-3.5" />
+            Save Chat as Commit
+          </button>
+        </div>
+      ) : null}
       <div ref={listRef} className="flex-1 space-y-3 overflow-auto p-3">
         {messages.length === 0 && !loading ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-400">
