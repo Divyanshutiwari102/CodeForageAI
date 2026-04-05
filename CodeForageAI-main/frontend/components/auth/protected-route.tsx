@@ -10,8 +10,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    void Promise.resolve()
-      .then(() => useAuthStore.getState().init())
+    void useAuthStore
+      .getState()
+      .init()
       .catch((error) => {
         if (process.env.NODE_ENV !== "production") {
           console.error("ProtectedRoute init failed", error);
