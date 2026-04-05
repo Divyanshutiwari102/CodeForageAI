@@ -101,10 +101,10 @@ kubernetes:
   enabled: ${KUBERNETES_ENABLED:false}
   ingress-domain: ${KUBERNETES_INGRESS_DOMAIN:preview.localhost}
   preview-image: ${KUBERNETES_PREVIEW_IMAGE:node:20-alpine}
-  minio-endpoint: ${KUBERNETES_MINIO_ENDPOINT:${MINIO_ENDPOINT}}
-  minio-access-key: ${KUBERNETES_MINIO_ACCESS_KEY:${MINIO_ACCESS_KEY}}
-  minio-secret-key: ${KUBERNETES_MINIO_SECRET_KEY:${MINIO_SECRET_KEY}}
-  minio-bucket: ${KUBERNETES_MINIO_BUCKET:${MINIO_BUCKET:codeforageai}}
+  minio-endpoint: ${KUBERNETES_MINIO_ENDPOINT:}
+  minio-access-key: ${KUBERNETES_MINIO_ACCESS_KEY:}
+  minio-secret-key: ${KUBERNETES_MINIO_SECRET_KEY:}
+  minio-bucket: ${KUBERNETES_MINIO_BUCKET:codeforageai}
 
 server:
   port: 8080

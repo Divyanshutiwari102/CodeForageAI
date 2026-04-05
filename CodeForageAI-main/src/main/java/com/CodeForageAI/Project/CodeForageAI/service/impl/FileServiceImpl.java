@@ -13,6 +13,7 @@ import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.service.RagService;
+import com.CodeForageAI.Project.CodeForageAI.util.FileValidationUtil;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
@@ -125,7 +126,7 @@ public class FileServiceImpl implements FileService {
         String resolvedContentType = (contentType != null && !contentType.isBlank())
                 ? contentType
                 : "application/octet-stream";
-        if (!isAllowedContentType(resolvedContentType)) {
+        if (!FileValidationUtil.isAllowedContentType(resolvedContentType)) {
             throw new BadRequestException("Unsupported content type");
         }
 
@@ -296,14 +297,4 @@ public class FileServiceImpl implements FileService {
         return base.startsWith("text/") || TEXT_CONTENT_TYPES.contains(base);
     }
 
-    private boolean isAllowedContentType(String contentType) {
-        String base = contentType.contains(";")
-                ? contentType.substring(0, contentType.indexOf(';')).trim()
-                : contentType;
-        return base.startsWith("text/")
-                || base.equals("application/json")
-                || base.equals("application/javascript")
-                || base.equals("application/xml")
-                || base.equals("application/yaml");
-    }
 }

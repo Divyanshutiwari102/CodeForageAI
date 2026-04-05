@@ -5,6 +5,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.project.FileNode;
 import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
+import com.CodeForageAI.Project.CodeForageAI.util.FileValidationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
@@ -24,13 +24,10 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/projects/{projectId}/files")
 public class FileController {
-    private static final List<String> ALLOWED_CONTENT_TYPE_PREFIXES = List.of(
-            "text/", "application/json", "application/javascript", "application/xml", "application/yaml"
-    );
-
     private final FileService fileService;
     private final AuthUtil authUtil;
-    private final Map<Long, SlidingWindowCounter> uploadCounters = new ConcurrentHashMap<>();
+    private static final int MAX_TRACKED_UPLOAD_USERS = 10_000;
+    private final Map<Long, UploadRateState> uploadCounters = new ConcurrentHashMap<>();
 
     @Value("${upload.max-size-bytes:1048576}")
     private long maxUploadSizeBytes;
@@ -100,39 +97,51 @@ public class FileController {
             throw new BadRequestException("Uploaded file exceeds allowed size");
         }
         String contentType = file.getContentType();
-        if (contentType == null || ALLOWED_CONTENT_TYPE_PREFIXES.stream().noneMatch(contentType::startsWith)) {
+        if (!FileValidationUtil.isAllowedContentType(contentType)) {
             throw new BadRequestException("Unsupported file content type");
         }
-        SlidingWindowCounter counter = uploadCounters.computeIfAbsent(
-                userId, ignored -> new SlidingWindowCounter(uploadRateLimitWindowSeconds)
+        if (uploadCounters.size() > MAX_TRACKED_UPLOAD_USERS) {
+            uploadCounters.entrySet().removeIf(entry ->
+                    UploadRateState.isStale(entry.getValue(), uploadRateLimitWindowSeconds)
+            );
+        }
+        UploadRateState counter = uploadCounters.computeIfAbsent(
+                userId, ignored -> new UploadRateState()
         );
-        if (!counter.allow(uploadRateLimitMaxRequests)) {
+        if (!counter.allow(uploadRateLimitMaxRequests, uploadRateLimitWindowSeconds)) {
             throw new BadRequestException("Upload rate limit exceeded");
         }
     }
 
-    private static final class SlidingWindowCounter {
-        private long windowStartEpochSecond;
+    private static final class UploadRateState {
+        private long windowStartEpochMillis;
+        private long lastSeenEpochMillis;
         private int count;
-        private final long windowSeconds;
 
-        private SlidingWindowCounter(long windowSeconds) {
-            this.windowSeconds = windowSeconds;
-            this.windowStartEpochSecond = Instant.now().getEpochSecond();
+        private UploadRateState() {
+            this.windowStartEpochMillis = System.currentTimeMillis();
+            this.lastSeenEpochMillis = this.windowStartEpochMillis;
             this.count = 0;
         }
 
-        private synchronized boolean allow(int maxRequests) {
-            long now = Instant.now().getEpochSecond();
-            if (now - windowStartEpochSecond >= windowSeconds) {
-                windowStartEpochSecond = now;
+        private synchronized boolean allow(int maxRequests, long windowSeconds) {
+            long now = System.currentTimeMillis();
+            long windowMillis = windowSeconds * 1000L;
+            if (now - windowStartEpochMillis >= windowMillis) {
+                windowStartEpochMillis = now;
                 count = 0;
             }
+            lastSeenEpochMillis = now;
             if (count >= maxRequests) {
                 return false;
             }
             count++;
             return true;
+        }
+
+        private static boolean isStale(UploadRateState state, long windowSeconds) {
+            long now = System.currentTimeMillis();
+            return now - state.lastSeenEpochMillis > (windowSeconds * 4_000L);
         }
     }
 
