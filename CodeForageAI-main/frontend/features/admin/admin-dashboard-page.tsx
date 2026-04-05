@@ -47,15 +47,24 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     let mounted = true;
-    getAdminMetrics()
-      .then((data) => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const loadMetrics = async () => {
+      try {
+        const data = await getAdminMetrics();
         if (mounted) setMetrics(data);
-      })
-      .finally(() => {
+      } finally {
         if (mounted) setLoading(false);
-      });
+      }
+    };
+
+    void loadMetrics();
+    intervalId = setInterval(() => {
+      void loadMetrics();
+    }, 10000);
+
     return () => {
       mounted = false;
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
@@ -83,7 +92,7 @@ export function AdminDashboardPage() {
       <main className="space-y-6 p-4 sm:p-6">
         <section>
           <h2 className="text-lg font-semibold text-white">Admin Metrics Dashboard</h2>
-          <p className="text-sm text-slate-400">Operational counters, Redis reliability, and payment verification health.</p>
+          <p className="text-sm text-slate-400">Operational counters, Redis reliability, and payment verification health (live refresh every 10s).</p>
           {metrics ? (
             <p className="mt-2 text-xs text-slate-500">Last updated: {new Date(metrics.timestamp).toLocaleString()}</p>
           ) : null}

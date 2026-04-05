@@ -29,6 +29,14 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
   return data;
 }
 
+export interface LiveAdminMetrics {
+  timestamp: string;
+  paymentCreateOrderFailureRatePercent: number;
+  paymentVerifyFailureRatePercent: number;
+  paymentHighFailureRateAlertActive: boolean;
+  paymentHighFailureRateAlertCount: number;
+}
+
 
 export interface AuditLog {
   id: number;

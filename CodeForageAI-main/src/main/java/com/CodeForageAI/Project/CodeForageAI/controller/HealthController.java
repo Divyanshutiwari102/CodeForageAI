@@ -3,6 +3,7 @@ package com.CodeForageAI.Project.CodeForageAI.controller;
 import com.CodeForageAI.Project.CodeForageAI.config.MinioConfig;
 import com.CodeForageAI.Project.CodeForageAI.config.QdrantConfig;
 import com.CodeForageAI.Project.CodeForageAI.dto.health.HealthResponse;
+import com.CodeForageAI.Project.CodeForageAI.dto.health.LiveMetricsResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.health.MetricsResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.health.ServiceStatus;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatMessageRepository;
@@ -21,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -84,6 +86,34 @@ public class HealthController {
                 paymentVerificationRateLimiter.fallbackAllowCount(),
                 paymentVerificationRateLimiter.fallbackDenyCount());
         return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/metrics/stream")
+    public SseEmitter metricsStream() {
+        SseEmitter emitter = new SseEmitter(0L);
+        Thread streamThread = new Thread(() -> {
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    LiveMetricsResponse snapshot = new LiveMetricsResponse(
+                            Instant.now(),
+                            paymentMetricsTracker.createOrderFailureRatePercent(),
+                            paymentMetricsTracker.verifyFailureRatePercent(),
+                            paymentMetricsTracker.highFailureRateAlertActive(),
+                            paymentMetricsTracker.highFailureRateAlertCount()
+                    );
+                    emitter.send(SseEmitter.event().name("metrics").data(snapshot));
+                    Thread.sleep(5000);
+                }
+            } catch (Exception ex) {
+                emitter.completeWithError(ex);
+            }
+        }, "metrics-stream-thread");
+        streamThread.setDaemon(true);
+        emitter.onCompletion(streamThread::interrupt);
+        emitter.onTimeout(streamThread::interrupt);
+        streamThread.start();
+        return emitter;
     }
 
     private ServiceStatus checkDatabase() {

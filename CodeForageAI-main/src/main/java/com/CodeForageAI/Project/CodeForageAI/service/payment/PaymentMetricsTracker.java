@@ -1,9 +1,13 @@
 package com.CodeForageAI.Project.CodeForageAI.service.payment;
 
+import com.CodeForageAI.Project.CodeForageAI.dto.alert.AlertNotification;
+import com.CodeForageAI.Project.CodeForageAI.dto.alert.AlertSeverity;
+import com.CodeForageAI.Project.CodeForageAI.service.notification.AlertNotificationService;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -21,13 +25,16 @@ public class PaymentMetricsTracker {
 
     private final double alertFailureRateThresholdPercent;
     private final long alertMinimumEvents;
+    private final AlertNotificationService alertNotificationService;
 
     public PaymentMetricsTracker(
             @Value("${payment.monitoring.failure-rate-alert-threshold-percent:30}") double alertFailureRateThresholdPercent,
-            @Value("${payment.monitoring.failure-rate-alert-min-events:20}") long alertMinimumEvents
+            @Value("${payment.monitoring.failure-rate-alert-min-events:20}") long alertMinimumEvents,
+            AlertNotificationService alertNotificationService
     ) {
         this.alertFailureRateThresholdPercent = Math.max(1.0d, alertFailureRateThresholdPercent);
         this.alertMinimumEvents = Math.max(1L, alertMinimumEvents);
+        this.alertNotificationService = alertNotificationService;
     }
 
     public void recordCreateOrderSuccess() {
@@ -115,6 +122,13 @@ public class PaymentMetricsTracker {
         if (thresholdMet && !highFailureRateAlertActive) {
             highFailureRateAlertActive = true;
             long count = highFailureRateAlertCount.incrementAndGet();
+            alertNotificationService.notify(new AlertNotification(
+                    "High payment failure rate activated",
+                    "createRate=" + createOrderFailureRatePercent() + "% verifyRate=" + verifyFailureRatePercent()
+                            + "% threshold=" + alertFailureRateThresholdPercent + "% minEvents=" + alertMinimumEvents,
+                    AlertSeverity.CRITICAL,
+                    Instant.now()
+            ));
             log.warn("High payment failure rate alert activated count={} createRate={} verifyRate={} threshold={} minEvents={}",
                     count, createOrderFailureRatePercent(), verifyFailureRatePercent(),
                     alertFailureRateThresholdPercent, alertMinimumEvents);
@@ -123,6 +137,13 @@ public class PaymentMetricsTracker {
 
         if (!thresholdMet && highFailureRateAlertActive) {
             highFailureRateAlertActive = false;
+            alertNotificationService.notify(new AlertNotification(
+                    "High payment failure rate cleared",
+                    "createRate=" + createOrderFailureRatePercent() + "% verifyRate=" + verifyFailureRatePercent()
+                            + "% threshold=" + alertFailureRateThresholdPercent + "%",
+                    AlertSeverity.INFO,
+                    Instant.now()
+            ));
             log.info("High payment failure rate alert cleared createRate={} verifyRate={} threshold={}",
                     createOrderFailureRatePercent(), verifyFailureRatePercent(), alertFailureRateThresholdPercent);
         }
