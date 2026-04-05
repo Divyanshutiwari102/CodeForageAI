@@ -5,6 +5,8 @@ import { Send } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/utils/cn";
 
+const THINKING_LABEL = "Thinking...";
+
 interface Props {
   messages: ChatMessage[];
   loading: boolean;
@@ -13,7 +15,6 @@ interface Props {
 }
 
 export function ChatPanel({ messages, loading, error, onSend }: Props) {
-  const THINKING_LABEL = "Thinking...";
   const [input, setInput] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);

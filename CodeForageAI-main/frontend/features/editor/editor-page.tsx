@@ -10,7 +10,7 @@ import { PreviewPanel } from "@/components/editor/preview-panel";
 import { useFilesStore } from "@/store/useFilesStore";
 import { useChatStore } from "@/store/useChatStore";
 
-const HEADER_HEIGHT = 48;
+const HEADER_HEIGHT = 48; // Must match header `h-12` Tailwind class.
 const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((m) => m.ChatPanel), { ssr: false });
 const MemoizedFileTree = memo(FileTree);
 
