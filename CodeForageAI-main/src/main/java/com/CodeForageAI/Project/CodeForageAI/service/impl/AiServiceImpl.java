@@ -317,6 +317,10 @@ public class AiServiceImpl implements AiService {
                 .orElse("text/plain");
     }
 
+    /**
+     * Extracts assistant text content from a ChatResponse.
+     * Returns null when response, result, or output payload is unavailable.
+     */
     private String extractResponseContent(ChatResponse response) {
         if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
             return null;
@@ -324,10 +328,14 @@ public class AiServiceImpl implements AiService {
         return response.getResult().getOutput().getText();
     }
 
+    /**
+     * Resolves token usage from provider metadata when available.
+     * Falls back to character-based estimation when usage metadata is absent.
+     */
     private long resolveUsedTokens(ChatResponse response, String fallbackContent) {
         if (response != null && response.getMetadata() != null) {
             Usage usage = response.getMetadata().getUsage();
-            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+            if (usage != null && usage.getTotalTokens() != null) {
                 return usage.getTotalTokens();
             }
         }
