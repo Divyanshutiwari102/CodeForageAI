@@ -34,11 +34,14 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RazorpayServiceImpl implements RazorpayService {
+    private static final String PAYMENT_AUDIT = "PAYMENT_AUDIT";
+
     private final UserRepository userRepository;
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -57,21 +60,22 @@ public class RazorpayServiceImpl implements RazorpayService {
     @Override
     @Transactional
     public CreateOrderResponse createOrder(Long userId, CreateOrderRequest request) {
+        String correlationId = newCorrelationId();
         try {
-            log.info("PAYMENT_AUDIT create_order_started userId={} amount={} currency={}",
-                    userId, request.amount(), request.currency());
+            log.info("{} event=create_order status=started correlationId={} userId={} amount={} currency={}",
+                    PAYMENT_AUDIT, correlationId, userId, request.amount(), request.currency());
             JSONObject options = new JSONObject();
             options.put("amount", request.amount());
             options.put("currency", request.currency());
             options.put("receipt", "rcpt_user_" + userId + "_" + System.currentTimeMillis());
 
             Order order = client().orders.create(options);
-            log.info("PAYMENT_AUDIT create_order_success userId={} orderId={} amount={} currency={}",
-                    userId, order.get("id"), request.amount(), request.currency());
+            log.info("{} event=create_order status=success correlationId={} userId={} orderId={} amount={} currency={}",
+                    PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), request.amount(), request.currency());
             return new CreateOrderResponse(order.get("id"), request.amount(), request.currency(), keyId);
         } catch (Exception e) {
-            log.error("PAYMENT_AUDIT create_order_failed userId={} amount={} currency={} error={}",
-                    userId, request.amount(), request.currency(), e.getMessage(), e);
+            log.error("{} event=create_order status=failure correlationId={} userId={} amount={} currency={} error={}",
+                    PAYMENT_AUDIT, correlationId, userId, request.amount(), request.currency(), e.getMessage(), e);
             throw new BadRequestException("Failed to create Razorpay order: " + e.getMessage());
         }
     }
@@ -79,23 +83,23 @@ public class RazorpayServiceImpl implements RazorpayService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void verifyAndActivate(Long userId, VerifyPaymentRequest request) {
+        String correlationId = newCorrelationId();
+        String orderId = request.razorpay_order_id();
+        String paymentId = request.razorpay_payment_id();
+        String signature = request.razorpay_signature();
+        Long planId = request.planId();
         try {
-            String orderId = request.razorpay_order_id();
-            String paymentId = request.razorpay_payment_id();
-            String signature = request.razorpay_signature();
-            Long planId = request.planId();
-
-            log.info("PAYMENT_AUDIT verify_started userId={} planId={} orderId={} paymentId={}",
-                    userId, planId, orderId, paymentId);
+            log.info("{} event=verify_payment status=started correlationId={} userId={} planId={} orderId={} paymentId={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
             boolean valid = verifySignature(orderId, paymentId, signature);
             if (!valid) {
-                log.warn("PAYMENT_AUDIT verify_failed_invalid_signature userId={} planId={} orderId={} paymentId={}",
-                        userId, planId, orderId, paymentId);
+                log.warn("{} event=verify_signature status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=invalid_signature",
+                        PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
                 throw new BadRequestException("Invalid Razorpay signature");
             }
-            log.info("PAYMENT_AUDIT verify_signature_success userId={} planId={} orderId={} paymentId={}",
-                    userId, planId, orderId, paymentId);
+            log.info("{} event=verify_signature status=success correlationId={} userId={} planId={} orderId={} paymentId={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
@@ -111,14 +115,14 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .providerSignature(signature)
                     .status(PaymentTransactionStatus.SUCCESS)
                     .build());
-            log.info("PAYMENT_AUDIT verify_transaction_persisted userId={} planId={} orderId={} paymentId={}",
-                    userId, planId, orderId, paymentId);
+            log.info("{} event=payment_transaction status=persisted correlationId={} userId={} planId={} orderId={} paymentId={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
             subscriptionRepository.findActiveByUserId(userId).ifPresent(s -> {
                 s.setStatus(SubscriptionStatus.CANCELED);
                 subscriptionRepository.save(s);
-                log.info("PAYMENT_AUDIT verify_existing_subscription_canceled userId={} subscriptionId={}",
-                        userId, s.getId());
+                log.info("{} event=subscription_transition status=canceled_previous correlationId={} userId={} subscriptionId={}",
+                        PAYMENT_AUDIT, correlationId, userId, s.getId());
             });
 
             Subscription sub = Subscription.builder()
@@ -133,27 +137,27 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .build();
 
             subscriptionRepository.save(sub);
-            log.info("PAYMENT_AUDIT verify_completed_success userId={} planId={} orderId={} paymentId={} subscriptionId={}",
-                    userId, planId, orderId, paymentId, sub.getId());
+            log.info("{} event=verify_payment status=success correlationId={} userId={} planId={} orderId={} paymentId={} subscriptionId={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), sub.getId());
 
         } catch (DataIntegrityViolationException e) {
             if (isDuplicatePaymentIdViolation(e)) {
                 // Idempotent at DB level: unique payment_id already persisted by concurrent request.
-                log.info("PAYMENT_AUDIT verify_idempotent_duplicate userId={} planId={} orderId={} paymentId={}",
-                        userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id());
+                log.info("{} event=verify_payment status=idempotent_duplicate correlationId={} userId={} planId={} orderId={} paymentId={}",
+                        PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
                 return;
             }
-            log.error("PAYMENT_AUDIT verify_failed_integrity userId={} planId={} orderId={} paymentId={} error={}",
-                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage(), e);
+            log.error("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=integrity_error error={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage(), e);
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
 
         } catch (BadRequestException e) {
-            log.warn("PAYMENT_AUDIT verify_failed_bad_request userId={} planId={} orderId={} paymentId={} error={}",
-                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage());
+            log.warn("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=bad_request error={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("PAYMENT_AUDIT verify_failed_exception userId={} planId={} orderId={} paymentId={} error={}",
-                    userId, request.planId(), request.razorpay_order_id(), request.razorpay_payment_id(), e.getMessage(), e);
+            log.error("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=unexpected_exception error={}",
+                    PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage(), e);
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
         }
     }
@@ -181,8 +185,21 @@ public class RazorpayServiceImpl implements RazorpayService {
 
     private boolean isDuplicatePaymentIdViolation(DataIntegrityViolationException e) {
         String message = e.getMessage();
+        String lowerMessage = StringUtils.hasText(message) ? message.toLowerCase() : null;
         return StringUtils.hasText(message)
-                && message.toLowerCase().contains("provider_payment_id")
-                && (message.toLowerCase().contains("duplicate") || message.toLowerCase().contains("unique"));
+                && lowerMessage.contains("provider_payment_id")
+                && (lowerMessage.contains("duplicate") || lowerMessage.contains("unique"));
+    }
+
+    private String newCorrelationId() {
+        return UUID.randomUUID().toString();
+    }
+
+    private String maskId(String value) {
+        if (!StringUtils.hasText(value)) return "null";
+        String trimmed = value.trim();
+        int len = trimmed.length();
+        if (len <= 6) return "***";
+        return trimmed.substring(0, 3) + "***" + trimmed.substring(len - 3);
     }
 }
