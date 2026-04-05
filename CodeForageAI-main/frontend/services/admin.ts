@@ -56,3 +56,22 @@ export async function getAuditLogs(page = 0, size = 20, traceId?: string): Promi
   });
   return data;
 }
+
+export interface CentralizedLogSearchResponse {
+  status?: string;
+  data?: {
+    resultType?: string;
+    result?: Array<{
+      stream?: Record<string, string>;
+      values?: string[][];
+    }>;
+  };
+  message?: string;
+}
+
+export async function searchCentralizedLogsByTraceId(traceId: string, limit = 100): Promise<CentralizedLogSearchResponse> {
+  const { data } = await api.get<CentralizedLogSearchResponse>(`/admin/audit-logs/${encodeURIComponent(traceId)}/search`, {
+    params: { limit },
+  });
+  return data;
+}

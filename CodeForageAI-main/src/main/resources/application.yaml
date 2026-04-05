@@ -85,3 +85,16 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+
+observability:
+  logs:
+    loki:
+      endpoint: ${LOKI_ENDPOINT:http://localhost:3100}

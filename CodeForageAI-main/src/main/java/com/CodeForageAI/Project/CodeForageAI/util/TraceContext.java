@@ -8,6 +8,7 @@ public final class TraceContext {
 
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String TRACE_ID_MDC_KEY = "traceId";
+    public static final String TRACE_ID_OTEL_MDC_KEY = "trace_id";
 
     private TraceContext() {
     }
@@ -22,6 +23,7 @@ public final class TraceContext {
     public static void set(String traceId) {
         if (traceId != null && !traceId.isBlank()) {
             MDC.put(TRACE_ID_MDC_KEY, traceId);
+            MDC.put(TRACE_ID_OTEL_MDC_KEY, traceId);
         }
     }
 
@@ -31,5 +33,6 @@ public final class TraceContext {
 
     public static void clear() {
         MDC.remove(TRACE_ID_MDC_KEY);
+        MDC.remove(TRACE_ID_OTEL_MDC_KEY);
     }
 }
