@@ -48,6 +48,6 @@ public class UploadRateLimiter {
                 String.valueOf(windowSeconds),
                 String.valueOf(maxRequestsPerWindow)
         );
-        return Long.valueOf(1L).equals(result);
+        return result != null && result == 1L;
     }
 }
