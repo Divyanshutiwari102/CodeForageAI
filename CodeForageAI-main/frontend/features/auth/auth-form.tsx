@@ -16,15 +16,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    try {
-      if (mode === "login") {
-        await login({ username: email, password });
-      } else {
-        await signup({ username: email, name, password });
-      }
+    const success = mode === "login" ? await login({ username: email, password }) : await signup({ username: email, name, password });
+    if (success) {
       router.replace("/dashboard");
-    } catch {
-      return;
     }
   }
 

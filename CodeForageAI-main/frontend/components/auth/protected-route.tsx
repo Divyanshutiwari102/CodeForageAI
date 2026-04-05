@@ -10,7 +10,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    void useAuthStore.getState().init().finally(() => setIsReady(true));
+    void Promise.resolve()
+      .then(() => useAuthStore.getState().init())
+      .catch(() => undefined)
+      .finally(() => setIsReady(true));
   }, []);
 
   useEffect(() => {

@@ -12,8 +12,8 @@ interface AuthState {
   isAuthenticated: boolean;
   error: string | null;
   init: () => Promise<void>;
-  login: (payload: { username: string; password: string }) => Promise<void>;
-  signup: (payload: { username: string; name: string; password: string }) => Promise<void>;
+  login: (payload: { username: string; password: string }) => Promise<boolean>;
+  signup: (payload: { username: string; name: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
   logout: () => void;
 }
@@ -47,6 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { token, user } = await loginRequest(payload);
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
+      return true;
     } catch (error) {
       const message = extractErrorMessage(error, "Login failed. Please try again.");
       clearAuthToken();
@@ -56,7 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: message,
       });
-      throw new Error(message);
+      return false;
     }
   },
   signup: async (payload) => {
@@ -65,6 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { token, user } = await signupRequest(payload);
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
+      return true;
     } catch (error) {
       const message = extractErrorMessage(error, "Unable to create account. Please try again.");
       clearAuthToken();
@@ -74,7 +76,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: message,
       });
-      throw new Error(message);
+      return false;
     }
   },
   loadUser: async () => {
