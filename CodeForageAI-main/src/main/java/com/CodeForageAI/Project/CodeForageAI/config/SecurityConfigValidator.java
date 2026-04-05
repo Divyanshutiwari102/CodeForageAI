@@ -56,7 +56,7 @@ public class SecurityConfigValidator {
     }
 
     private void requireMinLength(String name, String value, int minLength) {
-        if (value.length() < minLength) {
+        if (!StringUtils.hasText(value) || value.length() < minLength) {
             throw new IllegalStateException(name + " must be at least " + minLength + " characters");
         }
     }
