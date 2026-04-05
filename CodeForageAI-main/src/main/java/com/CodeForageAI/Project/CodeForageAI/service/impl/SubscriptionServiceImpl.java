@@ -6,6 +6,7 @@ import com.CodeForageAI.Project.CodeForageAI.dto.subscription.PlanResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.subscription.PortalResponse;
 import com.CodeForageAI.Project.CodeForageAI.dto.subscription.SubscriptionResponse;
 import com.CodeForageAI.Project.CodeForageAI.entity.Plan;
+import com.CodeForageAI.Project.CodeForageAI.enums.PlanType;
 import com.CodeForageAI.Project.CodeForageAI.repository.SubscriptionRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +44,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (plan == null) {
             return null;
         }
-        boolean proPlan = plan.getName().name().equals("PRO");
+        boolean proPlan = plan.getName() == PlanType.PRO;
+        Integer maxTokensPerDay = null;
+        if (plan.getMaxTokensPerMonth() != null) {
+            maxTokensPerDay = plan.getMaxTokensPerMonth() > Integer.MAX_VALUE
+                    ? Integer.MAX_VALUE
+                    : Math.toIntExact(plan.getMaxTokensPerMonth());
+        }
         return new PlanResponse(
                 plan.getId(),
                 plan.getName().name(),
                 plan.getMaxProjects(),
-                plan.getMaxTokensPerMonth() == null ? null : Math.toIntExact(plan.getMaxTokensPerMonth()),
+                maxTokensPerDay,
                 proPlan,
                 proPlan ? "custom" : "free"
         );
