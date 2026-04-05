@@ -73,7 +73,8 @@ export const useFilesStore = create<FilesState>((set, get) => ({
   closeTab: (fileId) => {
     const { openTabIds, tabsByFileId, activeFileId } = get();
     const nextOpenTabIds = openTabIds.filter((id) => id !== fileId);
-    const { [fileId]: _removed, ...nextTabsByFileId } = tabsByFileId;
+    const nextTabsByFileId = { ...tabsByFileId };
+    delete nextTabsByFileId[fileId];
     set({
       openTabIds: nextOpenTabIds,
       tabsByFileId: nextTabsByFileId,
