@@ -210,18 +210,17 @@ public class FileServiceImpl implements FileService {
             for (ProjectFile file : files) {
                 String path = normalizePath(file.getPath());
                 ZipEntry entry = new ZipEntry(path);
-                zipStream.putNextEntry(entry);
                 try (InputStream stream = minioClient.getObject(
                         GetObjectArgs.builder()
                                 .bucket(minioConfig.getBucket())
                                 .object(file.getMinioObjectKey())
                                 .build()
                 )) {
+                    zipStream.putNextEntry(entry);
                     stream.transferTo(zipStream);
+                    zipStream.closeEntry();
                 } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
                     throw new IllegalStateException("Failed to read file content for path: " + path, e);
-                } finally {
-                    zipStream.closeEntry();
                 }
             }
             zipStream.finish();

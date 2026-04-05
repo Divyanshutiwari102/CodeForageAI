@@ -64,19 +64,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
         void handleExport();
         return;
       }
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && quickOpenVisible) {
         setQuickOpenVisible(false);
+        setQuickOpenQuery("");
       }
     };
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
-  }, [handleExport]);
+  }, [handleExport, quickOpenVisible]);
 
-  async function handleQuickOpenSelect(file: FileNode) {
+  const handleQuickOpenSelect = useCallback(async (file: FileNode) => {
     await openFile(file);
     setQuickOpenVisible(false);
     setQuickOpenQuery("");
-  }
+  }, [openFile]);
 
   return (
     <div className="h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -150,7 +151,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
         query={quickOpenQuery}
         files={tree}
         onQueryChange={setQuickOpenQuery}
-        onClose={() => setQuickOpenVisible(false)}
+        onClose={() => {
+          setQuickOpenVisible(false);
+          setQuickOpenQuery("");
+        }}
         onSelect={(file) => void handleQuickOpenSelect(file)}
       />
     </div>
