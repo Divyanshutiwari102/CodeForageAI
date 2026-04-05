@@ -21,6 +21,11 @@ spring:
     init:
       mode: never
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
@@ -43,6 +48,10 @@ minio:
 
 payment:
   provider: razorpay
+  rate-limit:
+    verify-max-requests: ${PAYMENT_VERIFY_RATE_LIMIT_MAX_REQUESTS:10}
+    verify-window-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_WINDOW_SECONDS:60}
+    fail-open-on-redis-error: ${PAYMENT_VERIFY_RATE_LIMIT_FAIL_OPEN:true}
 
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}

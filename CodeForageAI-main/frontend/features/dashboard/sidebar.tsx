@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, FolderGit2, MessageSquare, Settings } from "lucide-react";
+import { LayoutDashboard, FolderGit2, MessageSquare, Settings, ShieldCheck } from "lucide-react";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin", label: "Admin Metrics", icon: ShieldCheck },
   { href: "/project/1", label: "Editor", icon: FolderGit2 },
   { href: "#", label: "Assistant", icon: MessageSquare },
   { href: "#", label: "Settings", icon: Settings },

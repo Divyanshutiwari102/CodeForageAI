@@ -27,6 +27,13 @@ services:
     volumes:
       - minio_data:/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: codeforage-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: codeforage-qdrant
