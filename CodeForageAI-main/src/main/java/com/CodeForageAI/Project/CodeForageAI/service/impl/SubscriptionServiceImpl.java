@@ -43,13 +43,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (plan == null) {
             return null;
         }
+        boolean proPlan = plan.getName().name().equals("PRO");
         return new PlanResponse(
                 plan.getId(),
                 plan.getName().name(),
                 plan.getMaxProjects(),
                 plan.getMaxTokensPerMonth() == null ? null : Math.toIntExact(plan.getMaxTokensPerMonth()),
-                plan.getName().name().equals("PRO"),
-                plan.getName().name().equals("PRO") ? "custom" : "free"
+                proPlan,
+                proPlan ? "custom" : "free"
         );
     }
 }
