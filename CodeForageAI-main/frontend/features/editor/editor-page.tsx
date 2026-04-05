@@ -52,7 +52,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [loadTree, boot, projectId]);
 
   const handleExport = useCallback(async () => {
-      const toastId = toast.loading("Preparing ZIP export...");
+    const toastId = toast.loading("Preparing ZIP export...");
     setExportProgress(0);
     try {
       const { filename, blob } = await exportProjectZip(projectId, {
