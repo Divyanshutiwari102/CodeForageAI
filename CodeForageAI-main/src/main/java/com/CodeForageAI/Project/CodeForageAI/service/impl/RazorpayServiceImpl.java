@@ -186,7 +186,7 @@ public class RazorpayServiceImpl implements RazorpayService {
     private boolean isDuplicatePaymentIdViolation(DataIntegrityViolationException e) {
         String message = e.getMessage();
         String lowerMessage = StringUtils.hasText(message) ? message.toLowerCase() : null;
-        return StringUtils.hasText(message)
+        return StringUtils.hasText(lowerMessage)
                 && lowerMessage.contains("provider_payment_id")
                 && (lowerMessage.contains("duplicate") || lowerMessage.contains("unique"));
     }
