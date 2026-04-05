@@ -1,5 +1,6 @@
 package com.CodeForageAI.Project.CodeForageAI.entity;
 
+import com.CodeForageAI.Project.CodeForageAI.enums.PaymentTransactionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -46,8 +47,9 @@ public class PaymentTransaction {
     @Column(name = "provider_signature", nullable = false)
     String providerSignature;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    String status;
+    PaymentTransactionStatus status;
 
     @CreationTimestamp
     Instant createdAt;

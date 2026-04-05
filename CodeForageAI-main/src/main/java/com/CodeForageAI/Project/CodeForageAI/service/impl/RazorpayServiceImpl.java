@@ -7,6 +7,7 @@ import com.CodeForageAI.Project.CodeForageAI.entity.PaymentTransaction;
 import com.CodeForageAI.Project.CodeForageAI.entity.Plan;
 import com.CodeForageAI.Project.CodeForageAI.entity.Subscription;
 import com.CodeForageAI.Project.CodeForageAI.entity.User;
+import com.CodeForageAI.Project.CodeForageAI.enums.PaymentTransactionStatus;
 import com.CodeForageAI.Project.CodeForageAI.enums.SubscriptionStatus;
 import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
@@ -27,11 +28,11 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.security.MessageDigest;
 
 @Service
 @RequiredArgsConstructor
 public class RazorpayServiceImpl implements RazorpayService {
+    private static final PaymentTransactionStatus SUCCESS = PaymentTransactionStatus.SUCCESS;
 
     private final UserRepository userRepository;
     private final PlanRepository planRepository;
@@ -82,8 +83,8 @@ public class RazorpayServiceImpl implements RazorpayService {
             var existingTxn = paymentTransactionRepository.findByProviderPaymentId(paymentId);
             if (existingTxn.isPresent()) {
                 PaymentTransaction tx = existingTxn.get();
-                if (!"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
-                    tx.setStatus("SUCCESS");
+                if (tx.getStatus() != SUCCESS) {
+                    tx.setStatus(SUCCESS);
                     paymentTransactionRepository.save(tx);
                 }
                 return;
@@ -114,7 +115,7 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .providerOrderId(orderId)
                     .providerPaymentId(paymentId)
                     .providerSignature(signature)
-                    .status("SUCCESS")
+                    .status(SUCCESS)
                     .build());
 
         } catch (BadRequestException e) {
@@ -130,7 +131,7 @@ public class RazorpayServiceImpl implements RazorpayService {
         mac.init(new SecretKeySpec(keySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         byte[] digest = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
         String expected = toHex(digest);
-        return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), receivedSignature.getBytes(StandardCharsets.UTF_8));
+        return expected.equals(receivedSignature);
     }
 
     private String toHex(byte[] bytes) {
