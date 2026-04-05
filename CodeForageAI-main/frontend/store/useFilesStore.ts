@@ -32,11 +32,13 @@ export const useFilesStore = create<FilesState>((set, get) => ({
   loading: false,
   error: null,
   loadTree: async (projectId) => {
-    set({ loading: true, error: null, projectId, openTabIds: [], tabsByFileId: {}, activeFileId: null });
+    set({ loading: true, error: null, projectId });
     try {
       const tree = await getProjectTree(projectId);
-      set({ tree, loading: false });
+      if (get().projectId !== projectId) return;
+      set({ tree, loading: false, openTabIds: [], tabsByFileId: {}, activeFileId: null });
     } catch (error) {
+      if (get().projectId !== projectId) return;
       set({ loading: false, error: getErrorMessage(error, "Failed to load project files") });
     }
   },
@@ -87,7 +89,7 @@ export const useFilesStore = create<FilesState>((set, get) => ({
       tabsByFileId: state.tabsByFileId[fileId]
         ? {
             ...state.tabsByFileId,
-            [fileId]: { ...state.tabsByFileId[fileId], content },
+            [fileId]: { ...state.tabsByFileId[fileId], content, isDirty: true },
           }
         : state.tabsByFileId,
     })),

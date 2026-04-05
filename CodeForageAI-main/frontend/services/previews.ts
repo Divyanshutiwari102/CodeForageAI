@@ -1,8 +1,11 @@
 import { api } from "@/services/api";
 
+export const PREVIEW_STATUSES = ["queued", "starting", "building", "running", "ready", "error"] as const;
+export type PreviewStatus = (typeof PREVIEW_STATUSES)[number];
+
 interface PreviewStatusResponse {
   previewId: number;
-  status: string;
+  status: string | null;
   previewUrl: string | null;
   message: string | null;
   createdAt: string;
@@ -11,8 +14,14 @@ interface PreviewStatusResponse {
 export interface PreviewState {
   previewId: number | null;
   previewUrl: string | null;
-  status: string | null;
+  status: PreviewStatus | null;
   message: string | null;
+}
+
+function normalizePreviewStatus(status: string | null | undefined): PreviewStatus | null {
+  if (!status) return null;
+  const normalized = status.toLowerCase();
+  return PREVIEW_STATUSES.find((candidate) => candidate === normalized) ?? null;
 }
 
 function mapLatest(previews: PreviewStatusResponse[]): PreviewState {
@@ -21,7 +30,7 @@ function mapLatest(previews: PreviewStatusResponse[]): PreviewState {
   return {
     previewId: latest.previewId,
     previewUrl: latest.previewUrl,
-    status: latest.status,
+    status: normalizePreviewStatus(latest.status),
     message: latest.message,
   };
 }

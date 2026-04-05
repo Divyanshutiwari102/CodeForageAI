@@ -116,6 +116,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
       if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === "e") {
         event.preventDefault();
         setShowExportOptions(true);
+        return;
+      }
+      if (event.key === "Escape") {
+        setShowAiEditDialog(false);
+        setShowExportOptions(false);
       }
     };
     window.addEventListener("keydown", onKeydown);
