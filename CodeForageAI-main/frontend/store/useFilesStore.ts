@@ -2,45 +2,71 @@
 
 import { create } from "zustand";
 import type { EditorTab, FileNode } from "@/types";
-import { getProjectTree } from "@/services/files";
+import { DEFAULT_EDITOR_LANGUAGE, getFileContent, getProjectTree } from "@/services/files";
 
 interface FilesState {
+  projectId: string | null;
   tree: FileNode[];
   expanded: Record<string, boolean>;
   activeFileId: string | null;
   tabs: EditorTab[];
   loading: boolean;
-  loadTree: () => Promise<void>;
+  error: string | null;
+  loadTree: (projectId: string) => Promise<void>;
   toggleFolder: (id: string) => void;
-  openFile: (node: FileNode) => void;
+  openFile: (node: FileNode) => Promise<void>;
   setActiveFile: (fileId: string) => void;
   closeTab: (fileId: string) => void;
 }
 
 export const useFilesStore = create<FilesState>((set, get) => ({
+  projectId: null,
   tree: [],
-  expanded: { src: true, "src-app": true },
+  expanded: {},
   activeFileId: null,
   tabs: [],
   loading: false,
-  loadTree: async () => {
-    set({ loading: true });
-    const tree = await getProjectTree();
-    set({ tree, loading: false });
+  error: null,
+  loadTree: async (projectId) => {
+    set({ loading: true, error: null, projectId, tabs: [], activeFileId: null });
+    try {
+      const tree = await getProjectTree(projectId);
+      set({ tree, loading: false });
+    } catch {
+      set({ loading: false, error: "Failed to load project files" });
+    }
   },
   toggleFolder: (id) => set((state) => ({ expanded: { ...state.expanded, [id]: !state.expanded[id] } })),
-  openFile: (node) => {
+  openFile: async (node) => {
     if (node.type !== "file") return;
-    const { tabs } = get();
+    const { tabs, projectId } = get();
+    if (!projectId) return;
     const exists = tabs.find((t) => t.fileId === node.id);
     if (exists) {
       set({ activeFileId: node.id });
       return;
     }
-    set({
-      tabs: [...tabs, { id: `tab-${node.id}`, fileId: node.id, title: node.name, language: node.language ?? "typescript" }],
-      activeFileId: node.id,
-    });
+
+    set({ loading: true, error: null });
+    try {
+      const content = await getFileContent(projectId, node.id);
+      set({
+        tabs: [
+          ...tabs,
+          {
+            id: `tab-${node.id}`,
+            fileId: node.id,
+            title: node.name,
+            language: node.language ?? DEFAULT_EDITOR_LANGUAGE,
+            content,
+          },
+        ],
+        activeFileId: node.id,
+        loading: false,
+      });
+    } catch {
+      set({ loading: false, error: "Failed to load file content" });
+    }
   },
   setActiveFile: (fileId) => set({ activeFileId: fileId }),
   closeTab: (fileId) => {

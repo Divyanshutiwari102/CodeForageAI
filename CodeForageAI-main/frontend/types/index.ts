@@ -38,6 +38,7 @@ export interface EditorTab {
   fileId: ID;
   title: string;
   language: string;
+  content: string;
 }
 
 export interface ChatMessage {

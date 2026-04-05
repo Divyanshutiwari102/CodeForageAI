@@ -14,31 +14,39 @@ interface Props {
 }
 
 export function FileTree({ nodes, expanded, activeFileId, onToggle, onOpen, level = 0 }: Props) {
+  if (nodes.length === 0) {
+    return <div className="rounded-md border border-white/10 bg-white/5 p-2 text-xs text-slate-400">No files found.</div>;
+  }
+
   return (
-    <ul className="space-y-1">
+    <ul className={cn("space-y-1", level > 0 && "border-l border-white/5 pl-1")}>
       {nodes.map((node) => {
         const isFolder = node.type === "folder";
-        const open = expanded[node.id];
+        const open = Boolean(expanded[node.id]);
+        const isActiveFile = activeFileId === node.id;
 
         return (
           <li key={node.id}>
             <button
+              type="button"
               onClick={() => (isFolder ? onToggle(node.id) : onOpen(node))}
               className={cn(
-                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition",
-                activeFileId === node.id ? "bg-cyan-500/20 text-cyan-200" : "text-slate-300 hover:bg-white/10",
+                "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-all duration-200",
+                isActiveFile
+                  ? "bg-cyan-500/20 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.25)]"
+                  : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
               )}
-              style={{ paddingLeft: 8 + level * 12 }}
+              style={{ paddingLeft: 8 + level * 14 }}
             >
               {isFolder ? (
                 <>
-                  <ChevronRight className={cn("h-3.5 w-3.5 transition", open && "rotate-90")} />
-                  <Folder className="h-3.5 w-3.5 text-cyan-300" />
+                  <ChevronRight className={cn("h-3.5 w-3.5 text-slate-500 transition-transform duration-200", open && "rotate-90")} />
+                  <Folder className={cn("h-3.5 w-3.5 transition-colors", open ? "text-cyan-300" : "text-slate-400 group-hover:text-cyan-300")} />
                 </>
               ) : (
                 <>
                   <span className="w-3.5" />
-                  <File className="h-3.5 w-3.5 text-slate-400" />
+                  <File className={cn("h-3.5 w-3.5 transition-colors", isActiveFile ? "text-cyan-300" : "text-slate-400 group-hover:text-slate-200")} />
                 </>
               )}
               <span className="truncate">{node.name}</span>
