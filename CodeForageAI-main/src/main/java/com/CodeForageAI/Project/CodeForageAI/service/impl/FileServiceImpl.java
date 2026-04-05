@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Service
@@ -194,6 +197,38 @@ public class FileServiceImpl implements FileService {
         }
 
         projectFileRepository.delete(file);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportProjectZip(Long projectId, Long userId) {
+        getAccessibleProject(projectId, userId);
+        List<ProjectFile> files = projectFileRepository.findByProject_Id(projectId);
+
+        try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+             ZipOutputStream zipStream = new ZipOutputStream(byteStream)) {
+            for (ProjectFile file : files) {
+                String path = normalizePath(file.getPath());
+                ZipEntry entry = new ZipEntry(path);
+                zipStream.putNextEntry(entry);
+                try (InputStream stream = minioClient.getObject(
+                        GetObjectArgs.builder()
+                                .bucket(minioConfig.getBucket())
+                                .object(file.getMinioObjectKey())
+                                .build()
+                )) {
+                    stream.transferTo(zipStream);
+                } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Failed to read file content for path: " + path, e);
+                } finally {
+                    zipStream.closeEntry();
+                }
+            }
+            zipStream.finish();
+            return byteStream.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to generate project zip export", e);
+        }
     }
 
     private Project getAccessibleProject(Long projectId, Long userId) {

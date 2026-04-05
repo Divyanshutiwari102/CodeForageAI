@@ -102,3 +102,11 @@ export async function getFileContent(projectId: string, path: string): Promise<s
   const { data } = await api.get<ApiFileContent>(`/projects/${projectId}/files/${encodedPath}`);
   return data.content;
 }
+
+export async function exportProjectZip(projectId: string): Promise<{ filename: string; blob: Blob }> {
+  const response = await api.get<Blob>(`/projects/${projectId}/files/export`, { responseType: "blob" });
+  const header = response.headers["content-disposition"] as string | undefined;
+  const filenameMatch = header?.match(/filename="?([^"]+)"?/i);
+  const filename = filenameMatch?.[1] ?? `project-${projectId}.zip`;
+  return { filename, blob: response.data };
+}
