@@ -7,6 +7,11 @@ public record MetricsResponse(
         long totalUsers,
         long totalProjects,
         long totalChatSessions,
-        long totalMessagesAllTime
+        long totalMessagesAllTime,
+        long paymentCreateOrderSuccessCount,
+        long paymentCreateOrderFailureCount,
+        long paymentVerifySuccessCount,
+        long paymentVerifyFailureCount,
+        long paymentVerifyRateLimitedCount
 ) {
 }

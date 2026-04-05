@@ -16,6 +16,7 @@ import com.CodeForageAI.Project.CodeForageAI.repository.PlanRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.SubscriptionRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.RazorpayService;
+import com.CodeForageAI.Project.CodeForageAI.service.payment.PaymentMetricsTracker;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class RazorpayServiceImpl implements RazorpayService {
     private final PlanRepository planRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final PaymentMetricsTracker paymentMetricsTracker;
 
     @Value("${razorpay.key-id}")
     private String keyId;
@@ -72,10 +74,12 @@ public class RazorpayServiceImpl implements RazorpayService {
             Order order = client().orders.create(options);
             log.info("{} event=create_order status=success correlationId={} userId={} orderId={} amount={} currency={}",
                     PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), request.amount(), request.currency());
+            paymentMetricsTracker.recordCreateOrderSuccess();
             return new CreateOrderResponse(order.get("id"), request.amount(), request.currency(), keyId);
         } catch (Exception e) {
             log.error("{} event=create_order status=failure correlationId={} userId={} amount={} currency={} error={}",
                     PAYMENT_AUDIT, correlationId, userId, request.amount(), request.currency(), e.getMessage(), e);
+            paymentMetricsTracker.recordCreateOrderFailure();
             throw new BadRequestException("Failed to create Razorpay order: " + e.getMessage());
         }
     }
@@ -139,25 +143,30 @@ public class RazorpayServiceImpl implements RazorpayService {
             subscriptionRepository.save(sub);
             log.info("{} event=verify_payment status=success correlationId={} userId={} planId={} orderId={} paymentId={} subscriptionId={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), sub.getId());
+            paymentMetricsTracker.recordVerifySuccess();
 
         } catch (DataIntegrityViolationException e) {
             if (isDuplicatePaymentIdViolation(e)) {
                 // Idempotent at DB level: unique payment_id already persisted by concurrent request.
                 log.info("{} event=verify_payment status=idempotent_duplicate correlationId={} userId={} planId={} orderId={} paymentId={}",
                         PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
+                paymentMetricsTracker.recordVerifySuccess();
                 return;
             }
             log.error("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=integrity_error error={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage(), e);
+            paymentMetricsTracker.recordVerifyFailure();
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
 
         } catch (BadRequestException e) {
             log.warn("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=bad_request error={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage());
+            paymentMetricsTracker.recordVerifyFailure();
             throw e;
         } catch (Exception e) {
             log.error("{} event=verify_payment status=failure correlationId={} userId={} planId={} orderId={} paymentId={} reason=unexpected_exception error={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), e.getMessage(), e);
+            paymentMetricsTracker.recordVerifyFailure();
             throw new BadRequestException("Payment verification failed: " + e.getMessage());
         }
     }
@@ -196,7 +205,7 @@ public class RazorpayServiceImpl implements RazorpayService {
     }
 
     private String maskId(String value) {
-        if (!StringUtils.hasText(value)) return "null";
+        if (!StringUtils.hasText(value)) return "[empty]";
         String trimmed = value.trim();
         int len = trimmed.length();
         if (len <= 6) return "***";
