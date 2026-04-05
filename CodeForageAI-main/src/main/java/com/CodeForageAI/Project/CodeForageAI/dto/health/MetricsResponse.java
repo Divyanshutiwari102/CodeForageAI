@@ -12,6 +12,12 @@ public record MetricsResponse(
         long paymentCreateOrderFailureCount,
         long paymentVerifySuccessCount,
         long paymentVerifyFailureCount,
-        long paymentVerifyRateLimitedCount
+        long paymentVerifyRateLimitedCount,
+        boolean paymentRateLimiterCircuitOpen,
+        long paymentRateLimiterCircuitOpenUntilEpochSecond,
+        long paymentRateLimiterConsecutiveRedisFailures,
+        long paymentRateLimiterCircuitOpenCount,
+        long paymentRateLimiterFallbackAllowCount,
+        long paymentRateLimiterFallbackDenyCount
 ) {
 }

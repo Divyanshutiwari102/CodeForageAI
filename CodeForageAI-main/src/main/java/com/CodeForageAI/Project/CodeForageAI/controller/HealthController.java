@@ -10,6 +10,7 @@ import com.CodeForageAI.Project.CodeForageAI.repository.ChatSessionRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.payment.PaymentMetricsTracker;
+import com.CodeForageAI.Project.CodeForageAI.service.payment.PaymentVerificationRateLimiter;
 import io.minio.BucketExistsArgs;
 import io.minio.MinioClient;
 import io.qdrant.client.QdrantClient;
@@ -41,6 +42,7 @@ public class HealthController {
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final PaymentMetricsTracker paymentMetricsTracker;
+    private final PaymentVerificationRateLimiter paymentVerificationRateLimiter;
 
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> health() {
@@ -67,7 +69,13 @@ public class HealthController {
                 paymentMetricsTracker.createOrderFailureCount(),
                 paymentMetricsTracker.verifySuccessCount(),
                 paymentMetricsTracker.verifyFailureCount(),
-                paymentMetricsTracker.verifyRateLimitedCount());
+                paymentMetricsTracker.verifyRateLimitedCount(),
+                paymentVerificationRateLimiter.circuitOpen(),
+                paymentVerificationRateLimiter.circuitOpenUntilEpochSecond(),
+                paymentVerificationRateLimiter.consecutiveRedisFailures(),
+                paymentVerificationRateLimiter.circuitOpenCount(),
+                paymentVerificationRateLimiter.fallbackAllowCount(),
+                paymentVerificationRateLimiter.fallbackDenyCount());
         return ResponseEntity.ok(response);
     }
 

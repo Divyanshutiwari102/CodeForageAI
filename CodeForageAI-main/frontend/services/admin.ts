@@ -11,6 +11,12 @@ export interface AdminMetrics {
   paymentVerifySuccessCount: number;
   paymentVerifyFailureCount: number;
   paymentVerifyRateLimitedCount: number;
+  paymentRateLimiterCircuitOpen: boolean;
+  paymentRateLimiterCircuitOpenUntilEpochSecond: number;
+  paymentRateLimiterConsecutiveRedisFailures: number;
+  paymentRateLimiterCircuitOpenCount: number;
+  paymentRateLimiterFallbackAllowCount: number;
+  paymentRateLimiterFallbackDenyCount: number;
 }
 
 export async function getAdminMetrics(): Promise<AdminMetrics> {

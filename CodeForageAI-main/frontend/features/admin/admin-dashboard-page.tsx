@@ -7,6 +7,39 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdminMetrics, type AdminMetrics } from "@/services/admin";
 
+function MiniBarChart({
+  title,
+  values,
+  labels,
+}: {
+  title: string;
+  values: number[];
+  labels: string[];
+}) {
+  const max = Math.max(...values, 1);
+  return (
+    <Card className="p-4">
+      <p className="mb-3 text-sm font-medium text-white">{title}</p>
+      <div className="space-y-2">
+        {values.map((value, idx) => {
+          const width = `${Math.max(6, Math.round((value / max) * 100))}%`;
+          return (
+            <div key={labels[idx]}>
+              <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
+                <span>{labels[idx]}</span>
+                <span>{value}</span>
+              </div>
+              <div className="h-2 w-full rounded bg-slate-800">
+                <div className="h-2 rounded bg-cyan-400" style={{ width }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,17 +72,22 @@ export function AdminDashboardPage() {
       ]
     : [];
 
+  const circuitOpenUntil = metrics?.paymentRateLimiterCircuitOpenUntilEpochSecond
+    ? new Date(metrics.paymentRateLimiterCircuitOpenUntilEpochSecond * 1000).toLocaleString()
+    : "-";
+
   return (
     <DashboardShell>
       <DashboardTopbar />
       <main className="space-y-6 p-4 sm:p-6">
         <section>
           <h2 className="text-lg font-semibold text-white">Admin Metrics Dashboard</h2>
-          <p className="text-sm text-slate-400">Operational counters and payment verification health.</p>
+          <p className="text-sm text-slate-400">Operational counters, Redis reliability, and payment verification health.</p>
           {metrics ? (
             <p className="mt-2 text-xs text-slate-500">Last updated: {new Date(metrics.timestamp).toLocaleString()}</p>
           ) : null}
         </section>
+
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {loading
             ? Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} className="h-28" />)
@@ -59,6 +97,59 @@ export function AdminDashboardPage() {
                   <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
                 </Card>
               ))}
+        </section>
+
+        <section className="grid gap-3 lg:grid-cols-2">
+          {loading || !metrics ? (
+            Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-48" />)
+          ) : (
+            <>
+              <MiniBarChart
+                title="Payment Pipeline"
+                labels={["Create Success", "Create Failure", "Verify Success", "Verify Failure", "Rate Limited"]}
+                values={[
+                  metrics.paymentCreateOrderSuccessCount,
+                  metrics.paymentCreateOrderFailureCount,
+                  metrics.paymentVerifySuccessCount,
+                  metrics.paymentVerifyFailureCount,
+                  metrics.paymentVerifyRateLimitedCount,
+                ]}
+              />
+              <MiniBarChart
+                title="Redis Limiter Reliability"
+                labels={["Consecutive Failures", "Circuit Opens", "Fallback Allow", "Fallback Deny"]}
+                values={[
+                  metrics.paymentRateLimiterConsecutiveRedisFailures,
+                  metrics.paymentRateLimiterCircuitOpenCount,
+                  metrics.paymentRateLimiterFallbackAllowCount,
+                  metrics.paymentRateLimiterFallbackDenyCount,
+                ]}
+              />
+            </>
+          )}
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-3">
+          {loading || !metrics ? (
+            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+          ) : (
+            <>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Redis Circuit State</p>
+                <p className={`mt-2 text-xl font-semibold ${metrics.paymentRateLimiterCircuitOpen ? "text-amber-300" : "text-emerald-300"}`}>
+                  {metrics.paymentRateLimiterCircuitOpen ? "OPEN" : "CLOSED"}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Circuit Open Until</p>
+                <p className="mt-2 text-sm font-semibold text-white">{circuitOpenUntil}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-slate-400">Monitoring Visibility</p>
+                <p className="mt-2 text-sm font-semibold text-white">Limiter + Fallback + Circuit telemetry active</p>
+              </Card>
+            </>
+          )}
         </section>
       </main>
     </DashboardShell>

@@ -52,6 +52,9 @@ payment:
     verify-max-requests: ${PAYMENT_VERIFY_RATE_LIMIT_MAX_REQUESTS:10}
     verify-window-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_WINDOW_SECONDS:60}
     fail-open-on-redis-error: ${PAYMENT_VERIFY_RATE_LIMIT_FAIL_OPEN:true}
+    circuit-breaker:
+      failure-threshold: ${PAYMENT_VERIFY_RATE_LIMIT_CB_FAILURE_THRESHOLD:5}
+      open-duration-seconds: ${PAYMENT_VERIFY_RATE_LIMIT_CB_OPEN_DURATION_SECONDS:30}
 
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}
