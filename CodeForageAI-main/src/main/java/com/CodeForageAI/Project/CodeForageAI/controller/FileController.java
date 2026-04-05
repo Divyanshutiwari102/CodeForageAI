@@ -61,11 +61,16 @@ public class FileController {
     }
 
     @GetMapping(value = "/export", produces = "application/zip")
-    public ResponseEntity<byte[]> exportProject(@PathVariable Long projectId) {
+    public ResponseEntity<byte[]> exportProject(
+            @PathVariable Long projectId,
+            @RequestParam(name = "path", required = false) List<String> selectedPaths,
+            @RequestParam(name = "template", defaultValue = "false") boolean asTemplate
+    ) {
         Long userId = authUtil.getCurrentUserId();
-        byte[] zipBytes = fileService.exportProjectZip(projectId, userId);
+        byte[] zipBytes = fileService.exportProjectZip(projectId, userId, selectedPaths, asTemplate);
+        String fileName = asTemplate ? "project-template-" + projectId + ".zip" : "project-" + projectId + ".zip";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"project-" + projectId + ".zip\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.parseMediaType("application/zip"))
                 .body(zipBytes);
     }

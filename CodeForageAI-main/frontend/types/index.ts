@@ -24,6 +24,13 @@ export interface Stats {
   delta: string;
 }
 
+export interface Analytics {
+  timestamp: string;
+  projectCreatedCount: number;
+  chatUsageCount: number;
+  previewUsageCount: number;
+}
+
 export interface FileNode {
   id: ID;
   name: string;

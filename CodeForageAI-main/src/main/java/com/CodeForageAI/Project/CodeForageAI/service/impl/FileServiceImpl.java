@@ -30,7 +30,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -201,15 +203,28 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] exportProjectZip(Long projectId, Long userId) {
+    public byte[] exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
         getAccessibleProject(projectId, userId);
         List<ProjectFile> files = projectFileRepository.findByProject_Id(projectId);
+        Set<String> selectedNormalizedPaths = selectedPaths == null
+                ? Set.of()
+                : selectedPaths.stream()
+                .filter(path -> path != null && !path.isBlank())
+                .map(this::normalizePath)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<ProjectFile> filesToExport = selectedNormalizedPaths.isEmpty()
+                ? files
+                : files.stream()
+                .filter(file -> selectedNormalizedPaths.contains(normalizePath(file.getPath())))
+                .toList();
 
         try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
              ZipOutputStream zipStream = new ZipOutputStream(byteStream)) {
-            for (ProjectFile file : files) {
+            for (ProjectFile file : filesToExport) {
                 String path = normalizePath(file.getPath());
-                ZipEntry entry = new ZipEntry(path);
+                String entryPath = asTemplate ? "template/" + path : path;
+                ZipEntry entry = new ZipEntry(entryPath);
                 try (InputStream stream = minioClient.getObject(
                         GetObjectArgs.builder()
                                 .bucket(minioConfig.getBucket())

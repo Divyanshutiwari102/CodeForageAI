@@ -35,3 +35,16 @@ export async function startPreview(projectId: string): Promise<PreviewState> {
   await api.post(`/projects/${projectId}/previews`);
   return getLatestPreview(projectId);
 }
+
+export function createPreviewLiveSocket(projectId: string): WebSocket | null {
+  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!base) return null;
+  let url: URL;
+  try {
+    url = new URL(base);
+  } catch {
+    return null;
+  }
+  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return new WebSocket(`${protocol}//${url.host}/ws/projects/${projectId}/preview`);
+}

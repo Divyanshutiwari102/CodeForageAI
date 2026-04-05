@@ -25,8 +25,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const { messages, loading: chatLoading, error: chatError, boot, send } = useChatStore();
   const [quickOpenVisible, setQuickOpenVisible] = useState(false);
   const [quickOpenQuery, setQuickOpenQuery] = useState("");
+  const [exportTemplate, setExportTemplate] = useState(false);
+  const [selectedExportPaths, setSelectedExportPaths] = useState<string[]>([]);
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   const activeTab = useMemo(() => tabs.find((tab) => tab.fileId === activeFileId) ?? null, [tabs, activeFileId]);
+  const allFiles = useMemo(() => {
+    const stack = [...tree];
+    const files: FileNode[] = [];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (!node) continue;
+      if (node.type === "file") {
+        files.push(node);
+      } else if (node.children?.length) {
+        stack.push(...node.children);
+      }
+    }
+    return files.sort((a, b) => a.id.localeCompare(b.id));
+  }, [tree]);
 
   useEffect(() => {
     void loadTree(projectId);
@@ -34,9 +51,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [loadTree, boot, projectId]);
 
   const handleExport = useCallback(async () => {
-    const toastId = toast.loading("Preparing ZIP export...");
+      const toastId = toast.loading("Preparing ZIP export...");
     try {
-      const { filename, blob } = await exportProjectZip(projectId);
+      const { filename, blob } = await exportProjectZip(projectId, {
+        asTemplate: exportTemplate,
+        paths: selectedExportPaths.length > 0 ? selectedExportPaths : undefined,
+      });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -46,10 +66,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
       anchor.remove();
       URL.revokeObjectURL(url);
       toast.success("Project exported", { id: toastId });
+      setShowExportOptions(false);
     } catch {
       toast.error("Failed to export project", { id: toastId });
     }
-  }, [projectId]);
+  }, [exportTemplate, projectId, selectedExportPaths]);
 
   useEffect(() => {
     const onKeydown = (event: KeyboardEvent) => {
@@ -61,7 +82,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       }
       if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === "e") {
         event.preventDefault();
-        void handleExport();
+        setShowExportOptions(true);
       }
     };
     window.addEventListener("keydown", onKeydown);
@@ -89,7 +110,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </button>
           <button
             type="button"
-            onClick={() => void handleExport()}
+            onClick={() => setShowExportOptions((prev) => !prev)}
             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
           >
             <Download className="h-3.5 w-3.5" />
@@ -152,6 +173,58 @@ export function EditorPage({ projectId }: { projectId: string }) {
         }}
         onSelect={(file) => void handleQuickOpenSelect(file)}
       />
+      {showExportOptions ? (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 p-4" onClick={() => setShowExportOptions(false)}>
+          <div className="mx-auto mt-20 w-full max-w-2xl rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-medium text-slate-100">Export project</h3>
+              <button
+                type="button"
+                onClick={() => setShowExportOptions(false)}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+            <label className="mb-3 flex items-center gap-2 text-xs text-slate-300">
+              <input type="checkbox" checked={exportTemplate} onChange={(e) => setExportTemplate(e.target.checked)} />
+              Export as template
+            </label>
+            <div className="max-h-64 space-y-1 overflow-auto rounded-md border border-white/10 bg-white/5 p-2">
+              {allFiles.map((file) => {
+                const checked = selectedExportPaths.includes(file.id);
+                return (
+                  <label key={file.id} className="flex items-center gap-2 rounded px-1 py-1 text-xs text-slate-200 hover:bg-white/10">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) =>
+                        setSelectedExportPaths((prev) =>
+                          e.target.checked ? [...prev, file.id] : prev.filter((path) => path !== file.id),
+                        )
+                      }
+                    />
+                    <span className="truncate">{file.id}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">
+              Leave all unchecked to export full project.
+            </p>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/20"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export ZIP
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import com.CodeForageAI.Project.CodeForageAI.service.AiService;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
 import com.CodeForageAI.Project.CodeForageAI.service.RagService;
+import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
 import com.CodeForageAI.Project.CodeForageAI.util.CodeBlockParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -44,6 +45,7 @@ public class AiServiceImpl implements AiService {
     FileService fileService;
     QuotaService quotaService;
     RagService ragService;
+    AnalyticsService analyticsService;
     ObjectMapper objectMapper;
 
     private static final String SYSTEM_PROMPT = """
@@ -69,6 +71,7 @@ public class AiServiceImpl implements AiService {
     public SseEmitter streamChat(ChatStreamRequest request, Long userId) {
         log.info("AI stream request: sessionId={} projectId={} userId={}", request.sessionId(), request.projectId(), userId);
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
+        analyticsService.trackChatUsed();
 
         // Check token quota before proceeding
         quotaService.checkTokenQuota(userId);

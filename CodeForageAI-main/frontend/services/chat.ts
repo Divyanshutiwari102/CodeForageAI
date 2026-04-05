@@ -41,18 +41,18 @@ function parseSseChunk(buffer: string): { events: ChatStreamEvent[]; rest: strin
   const events: ChatStreamEvent[] = [];
 
   for (const block of parts) {
-    const line = block
+    const raw = block
       .split("\n")
-      .map((l) => l.trim())
-      .find((l) => l.startsWith("data:"));
-    if (!line) continue;
-    const raw = line.slice(5).trim();
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join("");
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw) as ChatStreamEvent;
       events.push(parsed);
     } catch {
-      continue;
+      return { events, rest: `${block}\n\n${rest}` };
     }
   }
 

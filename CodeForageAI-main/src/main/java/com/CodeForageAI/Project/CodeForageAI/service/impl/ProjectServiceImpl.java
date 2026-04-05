@@ -16,6 +16,7 @@ import com.CodeForageAI.Project.CodeForageAI.repository.UserRepository;
 import com.CodeForageAI.Project.CodeForageAI.security.AuthUtil;
 import com.CodeForageAI.Project.CodeForageAI.service.ProjectService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
+import com.CodeForageAI.Project.CodeForageAI.service.AnalyticsService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class ProjectServiceImpl implements ProjectService {
     ProjectMemberRepository projectMemberRepository;
     AuthUtil authUtil;
     QuotaService quotaService;
+    AnalyticsService analyticsService;
 
     @Override
     public ProjectResponse createProject(ProjectRequest request) {
@@ -64,6 +66,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .project(project)
                 .build();
         projectMemberRepository.save(projectMember);
+        analyticsService.trackProjectCreated();
 
         return projectMapper.toProjectResponse(project);
     }

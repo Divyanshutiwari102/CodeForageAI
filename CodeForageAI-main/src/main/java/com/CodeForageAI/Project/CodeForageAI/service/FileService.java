@@ -14,5 +14,5 @@ public interface FileService {
 
     void deleteFile(Long projectId, String path, Long userId);
 
-    byte[] exportProjectZip(Long projectId, Long userId);
+    byte[] exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate);
 }

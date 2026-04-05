@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { getLatestPreview, startPreview } from "@/services/previews";
+import { createPreviewLiveSocket, getLatestPreview, startPreview } from "@/services/previews";
 
 interface PreviewStore {
   previewUrl: string | null;
@@ -11,9 +11,10 @@ interface PreviewStore {
   error: string | null;
   load: (projectId: string) => Promise<void>;
   refresh: (projectId: string) => Promise<void>;
+  subscribeLive: (projectId: string) => () => void;
 }
 
-export const usePreviewStore = create<PreviewStore>((set) => ({
+export const usePreviewStore = create<PreviewStore>((set, get) => ({
   previewUrl: null,
   status: null,
   message: null,
@@ -46,5 +47,39 @@ export const usePreviewStore = create<PreviewStore>((set) => ({
     } catch {
       set({ loading: false, error: "Failed to refresh preview" });
     }
+  },
+  subscribeLive: (projectId) => {
+    const socket = createPreviewLiveSocket(projectId);
+    if (!socket) {
+      const timer = setInterval(() => {
+        void get().refresh(projectId);
+      }, 10000);
+      return () => clearInterval(timer);
+    }
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+    socket.onopen = () => {
+      if (fallbackTimer) clearInterval(fallbackTimer);
+    };
+    socket.onmessage = () => {
+      void get().refresh(projectId);
+    };
+    socket.onerror = () => {
+      if (!fallbackTimer) {
+        fallbackTimer = setInterval(() => {
+          void get().refresh(projectId);
+        }, 10000);
+      }
+    };
+    socket.onclose = () => {
+      if (!fallbackTimer) {
+        fallbackTimer = setInterval(() => {
+          void get().refresh(projectId);
+        }, 10000);
+      }
+    };
+    return () => {
+      socket.close();
+      if (fallbackTimer) clearInterval(fallbackTimer);
+    };
   },
 }));
