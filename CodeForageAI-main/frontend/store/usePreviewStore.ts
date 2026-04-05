@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { createPreviewLiveSocket, getLatestPreview, startPreview } from "@/services/previews";
+import { createPreviewLiveSocket, getLatestPreview, startPreview, type PreviewStatus } from "@/services/previews";
 import { getErrorMessage } from "@/services/errors";
 
 const PREVIEW_POLL_INTERVAL_MS = 10000;
@@ -9,15 +9,13 @@ const SOCKET_OPEN_GRACE_MS = 3000;
 const RECONNECT_BASE_DELAY_MS = 2000;
 const RECONNECT_MAX_DELAY_MS = 15000;
 
-const PREVIEW_LOADING_STATUSES = new Set(["queued", "starting", "building", "running"]);
+const PREVIEW_LOADING_STATUSES = new Set<PreviewStatus>(["queued", "starting", "building", "running"]);
 const PREVIEW_POLL_MAX_ATTEMPTS = 12;
-
-type PreviewStatus = "queued" | "starting" | "building" | "running" | "ready" | "error";
 let activePollRun = 0;
 
 interface PreviewStore {
   previewUrl: string | null;
-  status: PreviewStatus | string | null;
+  status: PreviewStatus | null;
   message: string | null;
   loading: boolean;
   error: string | null;
@@ -27,10 +25,10 @@ interface PreviewStore {
   poll: (projectId: string) => Promise<void>;
 }
 
-function shouldPoll(status: PreviewStatus | string | null, previewUrl: string | null): boolean {
+function shouldPoll(status: PreviewStatus | null, previewUrl: string | null): boolean {
   if (previewUrl) return false;
   if (!status) return true;
-  return PREVIEW_LOADING_STATUSES.has(status.toLowerCase());
+  return PREVIEW_LOADING_STATUSES.has(status);
 }
 
 async function resolveLatestPreview(projectId: string) {
@@ -103,6 +101,7 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
       }
       attempts += 1;
       await new Promise((resolve) => setTimeout(resolve, PREVIEW_POLL_INTERVAL_MS));
+      if (runId !== activePollRun) return;
     }
     if (runId !== activePollRun) return;
     set({ loading: false, error: "Preview startup timed out after maximum polling attempts" });

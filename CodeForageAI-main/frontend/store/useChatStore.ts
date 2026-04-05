@@ -24,14 +24,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loading: false,
   error: null,
   boot: async (projectId) => {
-    set({ loading: true, error: null, projectId });
+    set({ loading: true, error: null, projectId, sessionId: null, messageIds: [], messagesById: {} });
     try {
       const sessionId = await getOrCreateChatSession(projectId);
+      if (get().projectId !== projectId) return;
       const messages = await getChatHistory(sessionId);
+      if (get().projectId !== projectId) return;
       const messageIds = messages.map((message) => message.id);
       const messagesById = Object.fromEntries(messages.map((message) => [message.id, message]));
       set({ sessionId, messageIds, messagesById, loading: false });
     } catch (error) {
+      if (get().projectId !== projectId) return;
       set({ loading: false, error: getErrorMessage(error, "Failed to load chat history") });
     }
   },
@@ -43,6 +46,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (loading) return;
 
     const currentSessionId = get().sessionId ?? (await getOrCreateChatSession(projectId, trimmed));
+    if (get().projectId !== projectId) return;
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
