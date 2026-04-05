@@ -33,7 +33,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <Card className="w-full max-w-md p-6">
         <h1 className="text-2xl font-semibold text-white">{mode === "login" ? "Welcome back" : "Create account"}</h1>
         <p className="mt-1 text-sm text-slate-400">{mode === "login" ? "Sign in to continue" : "Start building with CodeForageAI"}</p>
-        <form onSubmit={(e) => void onSubmit(e)} className="mt-6 space-y-4">
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
           {mode === "signup" && (
             <label className="block space-y-1 text-sm">
               <span className="text-slate-300">Name</span>

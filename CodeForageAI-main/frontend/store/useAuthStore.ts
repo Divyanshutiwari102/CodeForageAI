@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import axios from "axios";
 import type { User } from "@/types";
 import { getCurrentUser, login as loginRequest, signup as signupRequest } from "@/services/auth";
 import { clearAuthToken, getAuthToken, setAuthToken } from "@/services/token";
@@ -15,6 +16,12 @@ interface AuthState {
   signup: (payload: { username: string; name: string; password: string }) => Promise<void>;
   loadUser: () => Promise<void>;
   logout: () => void;
+}
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!axios.isAxiosError(error)) return fallback;
+  const message = error.response?.data?.message;
+  return typeof message === "string" && message.length > 0 ? message : fallback;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -36,9 +43,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { token, user } = await loginRequest(payload);
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch {
+    } catch (error) {
       clearAuthToken();
-      set({ user: null, isAuthenticated: false, isLoading: false, error: "Invalid credentials" });
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: extractErrorMessage(error, "Login failed. Please try again."),
+      });
       throw new Error("Login failed");
     }
   },
@@ -48,9 +60,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { token, user } = await signupRequest(payload);
       setAuthToken(token);
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch {
+    } catch (error) {
       clearAuthToken();
-      set({ user: null, isAuthenticated: false, isLoading: false, error: "Signup failed" });
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: extractErrorMessage(error, "Unable to create account. Please try again."),
+      });
       throw new Error("Signup failed");
     }
   },
