@@ -34,7 +34,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const openFile = useFilesStore((state) => state.openFile);
   const setActiveFile = useFilesStore((state) => state.setActiveFile);
   const closeTab = useFilesStore((state) => state.closeTab);
+  const updateTabContent = useFilesStore((state) => state.updateTabContent);
 
+  const sessionId = useChatStore((state) => state.sessionId);
   const messageIds = useChatStore((state) => state.messageIds);
   const messagesById = useChatStore((state) => state.messagesById);
   const chatLoading = useChatStore((state) => state.loading);
