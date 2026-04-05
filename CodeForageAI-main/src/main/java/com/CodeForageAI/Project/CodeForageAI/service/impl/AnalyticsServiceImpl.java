@@ -54,8 +54,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     @PostConstruct
     public void initializeFromPersistence() {
-        projectCreatedCount.set(projectRepository.count());
-        chatUsageCount.set(chatSessionRepository.count());
-        previewUsageCount.set(previewRepository.count());
+        projectCreatedCount.updateAndGet(current -> Math.max(current, projectRepository.count()));
+        chatUsageCount.updateAndGet(current -> Math.max(current, chatSessionRepository.count()));
+        previewUsageCount.updateAndGet(current -> Math.max(current, previewRepository.count()));
     }
 }

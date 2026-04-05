@@ -56,29 +56,37 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
       }, 10000);
       return () => clearInterval(pollingTimer);
     }
-    let pollingTimer: ReturnType<typeof setInterval> | null = null;
+    const startPolling = () =>
+      setInterval(() => {
+        void get().refresh(projectId);
+      }, 10000);
+    let pollingTimer: ReturnType<typeof setInterval> | null = startPolling();
+    const openTimeout = setTimeout(() => {
+      if (!pollingTimer) {
+        pollingTimer = startPolling();
+      }
+    }, 3000);
     socket.onopen = () => {
       if (pollingTimer) clearInterval(pollingTimer);
+      pollingTimer = null;
+      clearTimeout(openTimeout);
     };
     socket.onmessage = () => {
       void get().refresh(projectId);
     };
     socket.onerror = () => {
       if (!pollingTimer) {
-        pollingTimer = setInterval(() => {
-          void get().refresh(projectId);
-        }, 10000);
+        pollingTimer = startPolling();
       }
     };
     socket.onclose = () => {
       if (!pollingTimer) {
-        pollingTimer = setInterval(() => {
-          void get().refresh(projectId);
-        }, 10000);
+        pollingTimer = startPolling();
       }
     };
     return () => {
       socket.close();
+      clearTimeout(openTimeout);
       if (pollingTimer) clearInterval(pollingTimer);
     };
   },
