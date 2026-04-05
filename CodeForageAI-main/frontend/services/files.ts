@@ -67,7 +67,8 @@ export async function getProjectTree(projectId: string): Promise<FileNode[]> {
       root.push(node);
     } else {
       const parent = ensureFolder(parentPath);
-      parent.children = [...(parent.children ?? []), node];
+      if (!parent.children) parent.children = [];
+      parent.children.push(node);
     }
     return node;
   };
@@ -88,7 +89,8 @@ export async function getProjectTree(projectId: string): Promise<FileNode[]> {
       root.push(fileNode);
     } else {
       const parent = ensureFolder(parentPath);
-      parent.children = [...(parent.children ?? []), fileNode];
+      if (!parent.children) parent.children = [];
+      parent.children.push(fileNode);
     }
   }
 

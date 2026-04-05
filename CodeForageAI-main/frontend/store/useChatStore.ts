@@ -65,11 +65,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         {
           onToken: (token) => {
             set((state) => ({
-              messages: state.messages.map((message) =>
-                message.id === assistantMessageId
-                  ? { ...message, content: `${message.content}${token}` }
-                  : message,
-              ),
+              messages: (() => {
+                const index = state.messages.findIndex((message) => message.id === assistantMessageId);
+                if (index < 0) return state.messages;
+                const next = [...state.messages];
+                const current = next[index];
+                next[index] = { ...current, content: `${current.content}${token}` };
+                return next;
+              })(),
             }));
           },
           onError: (message) => {
