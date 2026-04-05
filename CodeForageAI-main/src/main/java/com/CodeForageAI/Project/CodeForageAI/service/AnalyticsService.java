@@ -12,4 +12,6 @@ public interface AnalyticsService {
     long getChatUsageCount();
 
     long getPreviewUsageCount();
+
+    void initializeFromPersistence();
 }

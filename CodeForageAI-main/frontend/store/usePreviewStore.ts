@@ -51,35 +51,35 @@ export const usePreviewStore = create<PreviewStore>((set, get) => ({
   subscribeLive: (projectId) => {
     const socket = createPreviewLiveSocket(projectId);
     if (!socket) {
-      const timer = setInterval(() => {
+      const pollingTimer = setInterval(() => {
         void get().refresh(projectId);
       }, 10000);
-      return () => clearInterval(timer);
+      return () => clearInterval(pollingTimer);
     }
-    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+    let pollingTimer: ReturnType<typeof setInterval> | null = null;
     socket.onopen = () => {
-      if (fallbackTimer) clearInterval(fallbackTimer);
+      if (pollingTimer) clearInterval(pollingTimer);
     };
     socket.onmessage = () => {
       void get().refresh(projectId);
     };
     socket.onerror = () => {
-      if (!fallbackTimer) {
-        fallbackTimer = setInterval(() => {
+      if (!pollingTimer) {
+        pollingTimer = setInterval(() => {
           void get().refresh(projectId);
         }, 10000);
       }
     };
     socket.onclose = () => {
-      if (!fallbackTimer) {
-        fallbackTimer = setInterval(() => {
+      if (!pollingTimer) {
+        pollingTimer = setInterval(() => {
           void get().refresh(projectId);
         }, 10000);
       }
     };
     return () => {
       socket.close();
-      if (fallbackTimer) clearInterval(fallbackTimer);
+      if (pollingTimer) clearInterval(pollingTimer);
     };
   },
 }));
