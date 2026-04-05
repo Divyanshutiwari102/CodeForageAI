@@ -3,11 +3,13 @@
 import { create } from "zustand";
 import type { ChatMessage } from "@/types";
 import { getChatHistory, getOrCreateChatSession, streamMessage } from "@/services/chat";
+import { getErrorMessage } from "@/services/errors";
 
 interface ChatState {
   projectId: string | null;
   sessionId: number | null;
-  messages: ChatMessage[];
+  messageIds: string[];
+  messagesById: Record<string, ChatMessage>;
   loading: boolean;
   error: string | null;
   boot: (projectId: string) => Promise<void>;
@@ -17,7 +19,8 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   projectId: null,
   sessionId: null,
-  messages: [],
+  messageIds: [],
+  messagesById: {},
   loading: false,
   error: null,
   boot: async (projectId) => {
@@ -25,9 +28,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const sessionId = await getOrCreateChatSession(projectId);
       const messages = await getChatHistory(sessionId);
-      set({ sessionId, messages, loading: false });
-    } catch {
-      set({ loading: false, error: "Failed to load chat history" });
+      const messageIds = messages.map((message) => message.id);
+      const messagesById = Object.fromEntries(messages.map((message) => [message.id, message]));
+      set({ sessionId, messageIds, messagesById, loading: false });
+    } catch (error) {
+      set({ loading: false, error: getErrorMessage(error, "Failed to load chat history") });
     }
   },
   send: async (content) => {
@@ -52,12 +57,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isStreaming: true,
     };
 
-    set({
+    set((state) => ({
       sessionId: currentSessionId,
-      messages: [...get().messages, userMessage, assistantPlaceholder],
+      messageIds: [...state.messageIds, userMessage.id, assistantMessageId],
+      messagesById: {
+        ...state.messagesById,
+        [userMessage.id]: userMessage,
+        [assistantMessageId]: assistantPlaceholder,
+      },
       loading: true,
       error: null,
-    });
+    }));
 
     try {
       await streamMessage(
@@ -65,13 +75,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         {
           onToken: (token) => {
             set((state) => ({
-              messages: (() => {
-                const index = state.messages.findIndex((message) => message.id === assistantMessageId);
-                if (index < 0) return state.messages;
-                const next = [...state.messages];
-                const current = next[index];
-                next[index] = { ...current, content: `${current.content}${token}` };
-                return next;
+              messagesById: (() => {
+                const current = state.messagesById[assistantMessageId];
+                if (!current) return state.messagesById;
+                return {
+                  ...state.messagesById,
+                  [assistantMessageId]: {
+                    ...current,
+                    content: `${current.content}${token}`,
+                  },
+                };
               })(),
             }));
           },
@@ -79,28 +92,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
             set((state) => ({
               loading: false,
               error: message,
-              messages: state.messages.map((item) =>
-                item.id === assistantMessageId ? { ...item, isStreaming: false } : item,
-              ),
+              messagesById: (() => {
+                const current = state.messagesById[assistantMessageId];
+                if (!current) return state.messagesById;
+                return {
+                  ...state.messagesById,
+                  [assistantMessageId]: { ...current, isStreaming: false },
+                };
+              })(),
             }));
           },
           onDone: () => {
             set((state) => ({
               loading: false,
-              messages: state.messages.map((message) =>
-                message.id === assistantMessageId ? { ...message, isStreaming: false } : message,
-              ),
+              messagesById: (() => {
+                const current = state.messagesById[assistantMessageId];
+                if (!current) return state.messagesById;
+                return {
+                  ...state.messagesById,
+                  [assistantMessageId]: { ...current, isStreaming: false },
+                };
+              })(),
             }));
           },
         },
       );
-    } catch {
+    } catch (error) {
       set((state) => ({
         loading: false,
-        error: "Failed to stream response",
-        messages: state.messages.map((item) =>
-          item.id === assistantMessageId ? { ...item, isStreaming: false } : item,
-        ),
+        error: getErrorMessage(error, "Failed to stream response"),
+        messagesById: (() => {
+          const current = state.messagesById[assistantMessageId];
+          if (!current) return state.messagesById;
+          return {
+            ...state.messagesById,
+            [assistantMessageId]: { ...current, isStreaming: false },
+          };
+        })(),
       }));
     }
   },

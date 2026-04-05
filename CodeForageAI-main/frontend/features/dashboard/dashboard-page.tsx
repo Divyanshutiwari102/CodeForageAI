@@ -9,7 +9,10 @@ import { StatsCard } from "@/features/dashboard/stats-card";
 import { ProjectCard } from "@/features/dashboard/project-card";
 
 export function DashboardPage() {
-  const { projects, stats, loading, loadDashboard } = useProjectsStore();
+  const projects = useProjectsStore((state) => state.projects);
+  const stats = useProjectsStore((state) => state.stats);
+  const loading = useProjectsStore((state) => state.loading);
+  const loadDashboard = useProjectsStore((state) => state.loadDashboard);
 
   useEffect(() => {
     loadDashboard();

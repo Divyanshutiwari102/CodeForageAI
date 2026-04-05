@@ -10,7 +10,12 @@ interface Props {
 }
 
 export function PreviewPanel({ projectId }: Props) {
-  const { previewUrl, loading, error, message, load, refresh } = usePreviewStore();
+  const previewUrl = usePreviewStore((state) => state.previewUrl);
+  const loading = usePreviewStore((state) => state.loading);
+  const error = usePreviewStore((state) => state.error);
+  const message = usePreviewStore((state) => state.message);
+  const load = usePreviewStore((state) => state.load);
+  const refresh = usePreviewStore((state) => state.refresh);
 
   useEffect(() => {
     void load(projectId);
