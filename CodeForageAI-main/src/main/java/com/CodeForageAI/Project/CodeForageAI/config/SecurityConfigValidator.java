@@ -39,6 +39,7 @@ public class SecurityConfigValidator {
         require("spring.datasource.username", dbUser);
         require("spring.datasource.password", dbPassword);
         require("jwt.secret-key", jwtSecret);
+        requireMinLength("jwt.secret-key", jwtSecret, 32);
         require("minio.endpoint", minioEndpoint);
         require("minio.access-key", minioAccessKey);
         require("minio.secret-key", minioSecretKey);
@@ -51,6 +52,12 @@ public class SecurityConfigValidator {
     private void require(String name, String value) {
         if (!StringUtils.hasText(value)) {
             throw new IllegalStateException(name + " must be configured");
+        }
+    }
+
+    private void requireMinLength(String name, String value, int minLength) {
+        if (!StringUtils.hasText(value) || value.length() < minLength) {
+            throw new IllegalStateException(name + " must be at least " + minLength + " characters");
         }
     }
 }
