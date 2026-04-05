@@ -25,6 +25,9 @@ public class AuthUtil {
     @Value("${jwt.secret-key}")
     private String jwtSecretKey;
 
+    @Value("${jwt.access-token-ttl-ms:3600000}")
+    private long accessTokenTtlMs;
+
     private SecretKey getSecretKey() {
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
     }
@@ -35,7 +38,7 @@ public class AuthUtil {
                 .claim("userId", user.getId().toString())
                 .claim("role", user.getRole().name())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24))
+                .expiration(new Date(System.currentTimeMillis() + accessTokenTtlMs))
                 .signWith(getSecretKey())
                 .compact();
     }
@@ -61,7 +64,7 @@ public class AuthUtil {
                     new ArrayList<>(java.util.List.of(new SimpleGrantedAuthority("ROLE_" + role)))
             );
         } catch (Exception e) {
-            log.warn("Invalid or expired JWT token: {}", e.getMessage());
+            log.warn("Invalid or expired JWT token");
             throw new JwtException("Invalid or expired token", e);
         }
     }

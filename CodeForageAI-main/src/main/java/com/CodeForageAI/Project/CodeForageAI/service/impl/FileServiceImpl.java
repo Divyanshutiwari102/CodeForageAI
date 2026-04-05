@@ -21,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +43,7 @@ import java.util.zip.ZipOutputStream;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Transactional
 public class FileServiceImpl implements FileService {
+    private static final int MAX_PATH_LENGTH = 255;
 
     MinioClient minioClient;
     MinioConfig minioConfig;
@@ -114,11 +116,17 @@ public class FileServiceImpl implements FileService {
         User user = userRepository.getReferenceById(userId);
 
         String normalizedPath = normalizePath(path);
+        if (content == null || content.length == 0) {
+            throw new IllegalArgumentException("File content must not be empty");
+        }
         String objectKey = buildObjectKey(projectId, normalizedPath);
 
         String resolvedContentType = (contentType != null && !contentType.isBlank())
                 ? contentType
                 : "application/octet-stream";
+        if (!isAllowedContentType(resolvedContentType)) {
+            throw new IllegalArgumentException("Unsupported content type");
+        }
 
         log.info("Uploading file: projectId={} path={} size={} contentType={}",
                 projectId, normalizedPath, content.length, resolvedContentType);
@@ -263,6 +271,13 @@ public class FileServiceImpl implements FileService {
         while (normalized.startsWith("/")) {
             normalized = normalized.substring(1);
         }
+        if (!StringUtils.hasText(normalized) || normalized.length() > MAX_PATH_LENGTH) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
+        if (normalized.contains("..") || normalized.contains("//") || normalized.contains("\0")
+                || normalized.startsWith(".") || normalized.contains(":")) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
         return normalized;
     }
 
@@ -278,5 +293,16 @@ public class FileServiceImpl implements FileService {
                 ? contentType.substring(0, contentType.indexOf(';')).trim()
                 : contentType;
         return base.startsWith("text/") || TEXT_CONTENT_TYPES.contains(base);
+    }
+
+    private boolean isAllowedContentType(String contentType) {
+        String base = contentType.contains(";")
+                ? contentType.substring(0, contentType.indexOf(';')).trim()
+                : contentType;
+        return base.startsWith("text/")
+                || base.equals("application/json")
+                || base.equals("application/javascript")
+                || base.equals("application/xml")
+                || base.equals("application/yaml");
     }
 }
