@@ -12,7 +12,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void Promise.resolve()
       .then(() => useAuthStore.getState().init())
-      .catch(() => undefined)
+      .catch((error) => {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("ProtectedRoute init failed", error);
+        }
+      })
       .finally(() => setIsReady(true));
   }, []);
 

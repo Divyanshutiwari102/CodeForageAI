@@ -37,7 +37,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     try {
       await useAuthStore.getState().loadUser();
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Auth init failed", error);
+      }
       return;
     }
   },
@@ -84,10 +87,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const user = await getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch {
+    } catch (error) {
+      const message = extractErrorMessage(error, "Failed to load user profile");
       clearAuthToken();
-      set({ user: null, isAuthenticated: false, isLoading: false });
-      throw new Error("Failed to load user profile");
+      set({ user: null, isAuthenticated: false, isLoading: false, error: message });
+      throw new Error(message);
     }
   },
   logout: () => {
