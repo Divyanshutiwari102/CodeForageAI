@@ -145,6 +145,8 @@ public class RazorpayServiceImpl implements RazorpayService {
                     .build();
 
             subscriptionRepository.save(sub);
+            user.setPlan(plan);
+            userRepository.save(user);
             log.info("{} event=verify_payment status=success correlationId={} userId={} planId={} orderId={} paymentId={} subscriptionId={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId), sub.getId());
             paymentMetricsTracker.recordVerifySuccess();
@@ -152,6 +154,7 @@ public class RazorpayServiceImpl implements RazorpayService {
         } catch (DataIntegrityViolationException e) {
             if (isDuplicatePaymentIdViolation(e)) {
                 // Idempotent at DB level: unique payment_id already persisted by concurrent request.
+                syncUserPlanSafely(userId, planId);
                 log.info("{} event=verify_payment status=idempotent_duplicate correlationId={} userId={} planId={} orderId={} paymentId={}",
                         PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
                 paymentMetricsTracker.recordVerifySuccess();
@@ -224,5 +227,21 @@ public class RazorpayServiceImpl implements RazorpayService {
         int len = trimmed.length();
         if (len <= 6) return "***";
         return trimmed.substring(0, 3) + "***" + trimmed.substring(len - 3);
+    }
+
+    private void syncUserPlanSafely(Long userId, Long planId) {
+        if (planId == null) {
+            return;
+        }
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+        Plan plan = planRepository.findById(planId).orElse(null);
+        if (plan == null) {
+            return;
+        }
+        user.setPlan(plan);
+        userRepository.save(user);
     }
 }

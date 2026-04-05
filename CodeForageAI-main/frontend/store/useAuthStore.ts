@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import type { User } from "@/types";
 import { getCurrentUser, login as loginRequest, signup as signupRequest } from "@/services/auth";
-import { clearAuthToken, getAuthToken, setAuthToken } from "@/services/token";
+import { clearAuthToken, setAuthToken } from "@/services/token";
 import { getErrorMessage } from "@/services/errors";
 
 interface AuthState {
@@ -24,16 +24,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   error: null,
   init: async () => {
-    const token = getAuthToken();
-    if (!token) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
-      return;
-    }
     try {
       await get().loadUser();
     } catch (error) {
-      const message = getErrorMessage(error, "Session initialization failed");
-      set({ user: null, isAuthenticated: false, isLoading: false, error: message });
+      console.error("Session initialization failed", error);
+      set({ user: null, isAuthenticated: false, isLoading: false, error: null });
       return;
     }
   },
