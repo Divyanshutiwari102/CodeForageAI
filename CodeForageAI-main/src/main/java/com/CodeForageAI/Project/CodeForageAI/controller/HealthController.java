@@ -24,10 +24,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.annotation.PreDestroy;
 import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @RestController
@@ -46,6 +52,7 @@ public class HealthController {
     private final ChatMessageRepository chatMessageRepository;
     private final PaymentMetricsTracker paymentMetricsTracker;
     private final PaymentVerificationRateLimiter paymentVerificationRateLimiter;
+    private final ScheduledExecutorService metricsStreamExecutor = Executors.newScheduledThreadPool(2);
 
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> health() {
@@ -91,29 +98,40 @@ public class HealthController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/metrics/stream")
     public SseEmitter metricsStream() {
-        SseEmitter emitter = new SseEmitter(0L);
-        Thread streamThread = new Thread(() -> {
+        SseEmitter emitter = new SseEmitter(60_000L);
+        AtomicReference<ScheduledFuture<?>> futureRef = new AtomicReference<>();
+
+        ScheduledFuture<?> future = metricsStreamExecutor.scheduleAtFixedRate(() -> {
             try {
-                while (!Thread.currentThread().isInterrupted()) {
-                    LiveMetricsResponse snapshot = new LiveMetricsResponse(
-                            Instant.now(),
-                            paymentMetricsTracker.createOrderFailureRatePercent(),
-                            paymentMetricsTracker.verifyFailureRatePercent(),
-                            paymentMetricsTracker.highFailureRateAlertActive(),
-                            paymentMetricsTracker.highFailureRateAlertCount()
-                    );
-                    emitter.send(SseEmitter.event().name("metrics").data(snapshot));
-                    Thread.sleep(5000);
-                }
+                LiveMetricsResponse snapshot = new LiveMetricsResponse(
+                        Instant.now(),
+                        paymentMetricsTracker.createOrderFailureRatePercent(),
+                        paymentMetricsTracker.verifyFailureRatePercent(),
+                        paymentMetricsTracker.highFailureRateAlertActive(),
+                        paymentMetricsTracker.highFailureRateAlertCount()
+                );
+                emitter.send(SseEmitter.event().name("metrics").data(snapshot));
             } catch (Exception ex) {
                 emitter.completeWithError(ex);
             }
-        }, "metrics-stream-thread");
-        streamThread.setDaemon(true);
-        emitter.onCompletion(streamThread::interrupt);
-        emitter.onTimeout(streamThread::interrupt);
-        streamThread.start();
+        }, 0, 5, TimeUnit.SECONDS);
+
+        futureRef.set(future);
+        emitter.onCompletion(() -> cancelFuture(futureRef.get()));
+        emitter.onTimeout(() -> cancelFuture(futureRef.get()));
+        emitter.onError(ex -> cancelFuture(futureRef.get()));
         return emitter;
+    }
+
+    private void cancelFuture(ScheduledFuture<?> future) {
+        if (future != null) {
+            future.cancel(true);
+        }
+    }
+
+    @PreDestroy
+    void shutdownMetricsStreamExecutor() {
+        metricsStreamExecutor.shutdownNow();
     }
 
     private ServiceStatus checkDatabase() {
