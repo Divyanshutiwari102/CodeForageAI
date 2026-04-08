@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeForage AI — Build Apps with AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --bg2: #0D0D1A;
+    --surface: rgba(255,255,255,0.035);
+    --surface2: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(0,212,255,0.2);
+    --cyan: #00D4FF;
+    --cyan2: #00A8CC;
+    --amber: #FFB347;
+    --text: #F0F0F8;
+    --text2: #8888AA;
+    --text3: #555577;
+    --red: #FF4D6D;
+    --green: #00FF88;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html { scroll-behavior: smooth; }
+  
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- NOISE OVERLAY ---- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* ---- GRADIENT MESH BG ---- */
+  .bg-mesh {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-mesh::before {
+    content: '';
+    position: absolute;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    animation: meshFloat 12s ease-in-out infinite alternate;
+  }
+  .bg-mesh::after {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(255,179,71,0.05) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    animation: meshFloat 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes meshFloat {
+    from { transform: translate(0,0) scale(1); }
+    to { transform: translate(40px, 30px) scale(1.1); }
+  }
+
+  /* ---- NAV ---- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,16,0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--cyan), var(--amber));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo span { color: var(--cyan); }
+  
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface); }
+  
+  .nav-cta {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0;
+  }
+  .btn-ghost:hover { border-color: var(--border2); color: var(--cyan); }
+  
+  .btn-primary {
+    background: var(--cyan);
+    border: none;
+    color: #080810;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: -0.2px;
+  }
+  .btn-primary:hover { background: #00EEFF; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,255,0.25); }
+
+  /* ---- HERO ---- */
+  .hero {
+    position: relative;
+    z-index: 10;
+    padding: 160px 40px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 8px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 40px;
+    animation: fadeSlideUp 0.6s ease both;
+  }
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--cyan);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .hero-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(52px, 8vw, 88px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    margin-bottom: 28px;
+    animation: fadeSlideUp 0.6s 0.1s ease both;
+  }
+  .hero-headline .line2 {
+    display: block;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--amber) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text2);
+    max-width: 560px;
+    line-height: 1.65;
+    margin-bottom: 48px;
+    font-weight: 300;
+    animation: fadeSlideUp 0.6s 0.2s ease both;
+  }
+  
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: fadeSlideUp 0.6s 0.3s ease both;
+  }
+  .btn-hero {
+    background: var(--cyan);
+    border: none;
+    color: #080810;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: -0.3px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-hero:hover {
+    background: #00EEFF;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(0,212,255,0.3);
+  }
+  .btn-hero-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'Geist', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    padding: 14px 32px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-hero-ghost:hover { border-color: var(--border2); color: var(--text); }
+
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-top: 64px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    animation: fadeSlideUp 0.6s 0.4s ease both;
+  }
+  .stat { }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+  .stat-num span { color: var(--cyan); }
+  .stat-label {
+    font-size: 13px;
+    color: var(--text3);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .stat-sep {
+    width: 1px;
+    height: 40px;
+    background: var(--border);
+  }
+
+  /* ---- APP PREVIEW ---- */
+  .app-preview {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto 120px;
+    padding: 0 40px;
+    animation: fadeSlideUp 0.8s 0.5s ease both;
+  }
+  
+  .preview-frame {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+    position: relative;
+  }
+  .preview-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 60%, rgba(8,8,16,0.9) 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+  
+  .frame-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .frame-dots { display: flex; gap: 6px; }
+  .frame-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .fd-r { background: #FF5F56; }
+  .fd-y { background: #FFBD2E; }
+  .fd-g { background: #27C93F; }
+  
+  .frame-url {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .frame-url::before { content: '🔒'; font-size: 9px; }
+  
+  /* Mock IDE Layout */
+  .ide-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 320px;
+    height: 480px;
+  }
+  
+  /* File Tree */
+  .ide-sidebar {
+    border-right: 1px solid var(--border);
+    padding: 12px 0;
+    background: rgba(0,0,0,0.2);
+  }
+  .ide-sidebar-header {
+    padding: 4px 16px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .file-item:hover, .file-item.active { background: var(--surface); color: var(--text); }
+  .file-item.active { border-left: 2px solid var(--cyan); color: var(--cyan); }
+  .file-icon { font-size: 10px; opacity: 0.7; }
+  .folder { color: var(--text3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  
+  /* Code Area */
+  .ide-code {
+    background: #0A0A12;
+    padding: 0;
+    overflow: hidden;
+  }
+  .code-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .code-tab {
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .code-tab.active { color: var(--text); background: rgba(0,212,255,0.05); border-bottom: 1px solid var(--cyan); }
+  
+  .code-content {
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text2);
+    height: calc(100% - 36px);
+    overflow: hidden;
+  }
+  .code-line { display: flex; gap: 24px; }
+  .ln { color: var(--text3); user-select: none; min-width: 20px; text-align: right; }
+  .kw { color: #C792EA; }
+  .fn { color: #82AAFF; }
+  .str { color: #C3E88D; }
+  .punc { color: var(--text2); }
+  .jsx-tag { color: var(--cyan); }
+  .jsx-attr { color: var(--amber); }
+  .cmt { color: var(--text3); font-style: italic; }
+  
+  /* AI Chat Panel */
+  .ide-chat {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.15);
+  }
+  .chat-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .chat-ai-dot {
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .chat-messages {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .chat-msg {
+    border-radius: 10px;
+    padding: 10px 13px;
+    font-size: 12px;
+    line-height: 1.6;
+    animation: fadeSlideUp 0.4s ease both;
+  }
+  .chat-msg.user {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.15);
+    color: var(--text);
+    align-self: flex-end;
+    max-width: 85%;
+  }
+  .chat-msg.ai {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .chat-msg.ai .ai-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .chat-input-area {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Geist', sans-serif;
+    resize: none;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .chat-input:focus { border-color: var(--border2); color: var(--text); }
+  
+  /* ---- FEATURES ---- */
+  .features {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto 120px;
+    padding: 0 40px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 60px;
+    color: var(--text);
+  }
+  .section-title span { color: var(--text3); }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .feature-card {
+    background: var(--bg);
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,212,255,0.04), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feature-card:hover { background: var(--bg2); }
+  .feature-card:hover::before { opacity: 1; }
+  
+  .feature-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .fi-cyan { background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2); }
+  .fi-amber { background: rgba(255,179,71,0.1); border: 1px solid rgba(255,179,71,0.2); }
+  .fi-green { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); }
+  
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: -0.4px;
+  }
+  .feature-desc {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  /* ---- PRICING ---- */
+  .pricing {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto 120px;
+    padding: 0 40px;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 60px;
+  }
+  .plan-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .plan-card.featured {
+    border-color: var(--cyan);
+    background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(0,212,255,0.02));
+  }
+  .plan-card:hover { transform: translateY(-4px); box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+  .plan-card.featured:hover { box-shadow: 0 24px 60px rgba(0,212,255,0.15); }
+  
+  .plan-badge {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: var(--cyan);
+    color: #080810;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .plan-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .plan-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .plan-price sup { font-size: 22px; vertical-align: super; }
+  .plan-period { font-size: 13px; color: var(--text3); margin-bottom: 28px; }
+  
+  .plan-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .plan-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 300;
+  }
+  .plan-features li::before {
+    content: '✓';
+    color: var(--cyan);
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  
+  .btn-plan {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+  }
+  .btn-plan:hover { background: var(--surface); color: var(--text); }
+  .btn-plan.featured {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: #080810;
+  }
+  .btn-plan.featured:hover { background: #00EEFF; box-shadow: 0 8px 24px rgba(0,212,255,0.3); }
+
+  /* ---- FOOTER ---- */
+  footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--border);
+    padding: 48px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text3);
+  }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text3);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text2); }
+  .footer-copy { font-size: 12px; color: var(--text3); }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- TYPING CURSOR ---- */
+  .typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--cyan);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">⚡</div>
+    Code<span>Forage</span>AI
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#">Docs</a></li>
+  </ul>
+  <div class="nav-cta">
+    <button class="btn-ghost" onclick="showAuth('login')">Sign in</button>
+    <button class="btn-primary" onclick="showAuth('signup')">Start building →</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="dot"></div>
+    Powered by GPT-4o + RAG Pipeline
+  </div>
+  
+  <h1 class="hero-headline">
+    Build full-stack apps<br>
+    <span class="line2">with a single prompt</span>
+  </h1>
+  
+  <p class="hero-sub">
+    Describe what you want. CodeForge AI writes the code, manages your files, and deploys a live preview — all in one workspace.
+  </p>
+  
+  <div class="hero-actions">
+    <button class="btn-hero" onclick="showAuth('signup')">
+      Start for free
+      <span>→</span>
+    </button>
+    <button class="btn-hero-ghost">
+      <span>▷</span>
+      Watch demo
+    </button>
+  </div>
+  
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">12k<span>+</span></div>
+      <div class="stat-label">Developers</div>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <div class="stat-num">340k<span>+</span></div>
+      <div class="stat-label">Apps built</div>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <div class="stat-num">99.9<span>%</span></div>
+      <div class="stat-label">Uptime SLA</div>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <div class="stat-num">&lt;2s</div>
+      <div class="stat-label">AI response time</div>
+    </div>
+  </div>
+</section>
+
+<!-- APP PREVIEW (Mock IDE) -->
+<div class="app-preview">
+  <div class="preview-frame">
+    <div class="frame-header">
+      <div class="frame-dots">
+        <div class="frame-dot fd-r"></div>
+        <div class="frame-dot fd-y"></div>
+        <div class="frame-dot fd-g"></div>
+      </div>
+      <div class="frame-url">app.codeforageai.com/editor/my-react-dashboard</div>
+    </div>
+    
+    <div class="ide-layout">
+      <!-- File Tree -->
+      <div class="ide-sidebar">
+        <div class="ide-sidebar-header">Explorer</div>
+        <div class="file-item folder">📁 src</div>
+        <div class="file-item" style="padding-left:28px">📄 main.tsx</div>
+        <div class="file-item active" style="padding-left:28px">⚛️ App.tsx</div>
+        <div class="file-item" style="padding-left:28px">🎨 index.css</div>
+        <div class="file-item folder" style="margin-top:4px">📁 components</div>
+        <div class="file-item" style="padding-left:28px">📄 Header.tsx</div>
+        <div class="file-item" style="padding-left:28px">📄 Dashboard.tsx</div>
+        <div class="file-item" style="padding-left:28px">📄 Sidebar.tsx</div>
+        <div class="file-item folder" style="margin-top:4px">📁 hooks</div>
+        <div class="file-item" style="padding-left:28px">📄 useAuth.ts</div>
+        <div class="file-item" style="padding-left:28px">📄 useData.ts</div>
+        <div class="file-item" style="margin-top:4px">📄 package.json</div>
+        <div class="file-item">📄 tailwind.config.js</div>
+        <div class="file-item">📄 vite.config.ts</div>
+      </div>
+      
+      <!-- Code Editor -->
+      <div class="ide-code">
+        <div class="code-tabs">
+          <div class="code-tab">main.tsx</div>
+          <div class="code-tab active">App.tsx</div>
+          <div class="code-tab">Dashboard.tsx</div>
+        </div>
+        <div class="code-content">
+          <div class="code-line"><span class="ln">1</span><span class="cmt">// Generated by CodeForage AI ✨</span></div>
+          <div class="code-line"><span class="ln">2</span><span class="kw">import</span> <span class="punc">{ </span><span class="fn">useState</span><span class="punc">, </span><span class="fn">useEffect</span><span class="punc"> }</span> <span class="kw">from</span> <span class="str">'react'</span></div>
+          <div class="code-line"><span class="ln">3</span><span class="kw">import</span> <span class="punc">{ </span><span class="fn">Dashboard</span><span class="punc"> }</span> <span class="kw">from</span> <span class="str">'./components/Dashboard'</span></div>
+          <div class="code-line"><span class="ln">4</span><span class="kw">import</span> <span class="punc">{ </span><span class="fn">useAuth</span><span class="punc"> }</span> <span class="kw">from</span> <span class="str">'./hooks/useAuth'</span></div>
+          <div class="code-line"><span class="ln">5</span></div>
+          <div class="code-line"><span class="ln">6</span><span class="kw">export default function</span> <span class="fn">App</span><span class="punc">() {</span></div>
+          <div class="code-line"><span class="ln">7</span><span class="punc">&nbsp;&nbsp;const</span> <span class="punc">{ </span><span class="fn">user</span><span class="punc">, </span><span class="fn">isLoading</span><span class="punc"> } = </span><span class="fn">useAuth</span><span class="punc">()</span></div>
+          <div class="code-line"><span class="ln">8</span></div>
+          <div class="code-line"><span class="ln">9</span><span class="punc">&nbsp;&nbsp;</span><span class="kw">if</span><span class="punc"> (</span><span class="fn">isLoading</span><span class="punc">)</span> <span class="kw">return</span> <span class="jsx-tag">&lt;LoadingSpinner /&gt;</span></div>
+          <div class="code-line"><span class="ln">10</span></div>
+          <div class="code-line"><span class="ln">11</span><span class="punc">&nbsp;&nbsp;</span><span class="kw">return</span> <span class="punc">(</span></div>
+          <div class="code-line"><span class="ln">12</span><span class="punc">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="jsx-tag">&lt;div</span> <span class="jsx-attr">className</span><span class="punc">=</span><span class="str">"min-h-screen bg-gray-950"</span><span class="jsx-tag">&gt;</span></div>
+          <div class="code-line"><span class="ln">13</span><span class="punc">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="jsx-tag">&lt;Dashboard</span> <span class="jsx-attr">user</span><span class="punc">={</span><span class="fn">user</span><span class="punc">}</span> <span class="jsx-tag">/&gt;</span></div>
+          <div class="code-line"><span class="ln">14</span><span class="punc">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="jsx-tag">&lt;/div&gt;</span></div>
+          <div class="code-line"><span class="ln">15</span><span class="punc">&nbsp;&nbsp;)</span></div>
+          <div class="code-line"><span class="ln">16</span><span class="punc">}</span></div>
+        </div>
+      </div>
+      
+      <!-- AI Chat -->
+      <div class="ide-chat">
+        <div class="chat-header">
+          <div class="chat-ai-dot"></div>
+          AI Assistant
+        </div>
+        <div class="chat-messages">
+          <div class="chat-msg user">
+            Add a dark sidebar with user stats and navigation links
+          </div>
+          <div class="chat-msg ai" style="animation-delay:0.2s">
+            <div class="ai-label">⚡ CodeForage AI</div>
+            I'll create a sidebar component with user stats, navigation, and a dark theme. Generating files now...
+          </div>
+          <div class="chat-msg ai" style="animation-delay:0.4s">
+            <div class="ai-label">✓ Created</div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">src/components/Sidebar.tsx</span><br>
+            <span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">+84 lines • Tailwind CSS • Responsive</span>
+          </div>
+          <div class="chat-msg user">
+            Also add a chart for revenue data
+          </div>
+          <div class="chat-msg ai" style="animation-delay:0.6s">
+            <div class="ai-label">⚡ Thinking...</div>
+            <span class="typing-cursor"></span>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" rows="2" placeholder="Ask AI to modify your app..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-label">// capabilities</div>
+  <div class="section-title">
+    Everything you need<br>
+    <span>to ship faster</span>
+  </div>
+  
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon fi-cyan">⚡</div>
+      <div class="feature-title">AI Code Generation</div>
+      <div class="feature-desc">GPT-4o generates full-stack code — React components, APIs, database schemas — from natural language.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-amber">🔍</div>
+      <div class="feature-title">RAG-Powered Context</div>
+      <div class="feature-desc">AI understands your entire codebase using vector embeddings. No more repeating context every message.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-green">▷</div>
+      <div class="feature-title">Live Preview</div>
+      <div class="feature-desc">Kubernetes-powered containers spin up your app instantly. See changes in real-time as AI writes code.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-cyan">📁</div>
+      <div class="feature-title">Smart File Manager</div>
+      <div class="feature-desc">MinIO-backed file system with full tree navigation. AI can read, write, and restructure your project files.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-amber">👥</div>
+      <div class="feature-title">Team Collaboration</div>
+      <div class="feature-desc">Invite teammates as Viewer, Editor, or Owner. Work together on the same AI workspace in real-time.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-green">📊</div>
+      <div class="feature-title">Usage Analytics</div>
+      <div class="feature-desc">Track token usage, project activity, and subscription limits. Built-in quota management per plan.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-label">// pricing</div>
+  <div class="section-title">
+    Simple,<br>
+    <span>transparent pricing</span>
+  </div>
+  
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price"><sup>₹</sup>0</div>
+      <div class="plan-period">forever</div>
+      <ul class="plan-features">
+        <li>3 projects</li>
+        <li>50k tokens / month</li>
+        <li>1 concurrent preview</li>
+        <li>Community support</li>
+      </ul>
+      <button class="btn-plan" onclick="showAuth('signup')">Get started</button>
+    </div>
+    
+    <div class="plan-card featured">
+      <div class="plan-badge">Popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price"><sup>₹</sup>999</div>
+      <div class="plan-period">per month</div>
+      <ul class="plan-features">
+        <li>Unlimited projects</li>
+        <li>1M tokens / month</li>
+        <li>5 concurrent previews</li>
+        <li>Team collaboration</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="btn-plan featured" onclick="showAuth('signup')">Start free trial</button>
+    </div>
+    
+    <div class="plan-card">
+      <div class="plan-name">Team</div>
+      <div class="plan-price"><sup>₹</sup>2999</div>
+      <div class="plan-period">per month</div>
+      <ul class="plan-features">
+        <li>Everything in Pro</li>
+        <li>10M tokens / month</li>
+        <li>Unlimited previews</li>
+        <li>SSO & SAML</li>
+        <li>SLA guarantee</li>
+        <li>Dedicated support</li>
+      </ul>
+      <button class="btn-plan" onclick="showAuth('signup')">Contact sales</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">CodeForageAI © 2025</div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Docs</a>
+    <a href="#">Status</a>
+  </div>
+  <div class="footer-copy">Built with ❤️ and GPT-4o</div>
+</footer>
+
+<!-- AUTH MODAL -->
+<div id="auth-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(8,8,16,0.85);backdrop-filter:blur(16px);display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:48px;width:100%;max-width:420px;position:relative;">
+    <button onclick="hideAuth()" style="position:absolute;top:20px;right:20px;background:var(--surface);border:none;color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;">×</button>
+    
+    <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;" id="auth-title">Welcome back</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:32px;" id="auth-sub">Sign in to continue building</div>
+    
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">USERNAME</label>
+        <input type="text" placeholder="johndoe" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:all 0.2s;" onfocus="this.style.borderColor='rgba(0,212,255,0.4)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="auth-name-field" style="display:none;">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">FULL NAME</label>
+        <input type="text" placeholder="John Doe" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:all 0.2s;" onfocus="this.style.borderColor='rgba(0,212,255,0.4)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">PASSWORD</label>
+        <input type="password" placeholder="••••••••" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:all 0.2s;" onfocus="this.style.borderColor='rgba(0,212,255,0.4)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      
+      <button style="width:100%;background:var(--cyan);border:none;color:#080810;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;margin-top:8px;transition:all 0.2s;" onmouseover="this.style.background='#00EEFF'" onmouseout="this.style.background='var(--cyan)'" id="auth-btn">Sign In</button>
+      
+      <div style="text-align:center;font-size:13px;color:var(--text3);">
+        <span id="auth-toggle-text">Don't have an account? </span>
+        <a href="#" onclick="toggleAuth()" style="color:var(--cyan);text-decoration:none;font-weight:500;" id="auth-toggle-link">Sign up</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let authMode = 'login';
+  
+  function showAuth(mode) {
+    authMode = mode;
+    const overlay = document.getElementById('auth-overlay');
+    overlay.style.display = 'flex';
+    updateAuthUI();
+  }
+  
+  function hideAuth() {
+    document.getElementById('auth-overlay').style.display = 'none';
+  }
+  
+  function toggleAuth() {
+    authMode = authMode === 'login' ? 'signup' : 'login';
+    updateAuthUI();
+    return false;
+  }
+  
+  function updateAuthUI() {
+    const isSignup = authMode === 'signup';
+    document.getElementById('auth-title').textContent = isSignup ? 'Create account' : 'Welcome back';
+    document.getElementById('auth-sub').textContent = isSignup ? 'Start building with AI today' : 'Sign in to continue building';
+    document.getElementById('auth-btn').textContent = isSignup ? 'Create Account' : 'Sign In';
+    document.getElementById('auth-name-field').style.display = isSignup ? 'block' : 'none';
+    document.getElementById('auth-toggle-text').textContent = isSignup ? 'Already have an account? ' : "Don't have an account? ";
+    document.getElementById('auth-toggle-link').textContent = isSignup ? 'Sign in' : 'Sign up';
+  }
+  
+  // Close modal on overlay click
+  document.getElementById('auth-overlay').addEventListener('click', function(e) {
+    if (e.target === this) hideAuth();
+  });
+  
+  // Animated number counters
+  function animateCount(el, target, suffix='') {
+    let start = 0;
+    const duration = 2000;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { start = target; clearInterval(timer); }
+      el.textContent = Math.floor(start).toLocaleString() + suffix;
+    }, 16);
+  }
+</script>
+</body>
+</html>
