@@ -127,9 +127,11 @@ public class RazorpayServiceImpl implements RazorpayService {
 
             PaymentTransaction paymentTransaction = paymentTransactionRepository
                     .findTopByUser_IdAndProviderOrderIdOrderByCreatedAtDesc(userId, orderId)
-                    .orElseThrow(() -> new BadRequestException("Payment order not found for user"));
+                    .orElseThrow(() -> new BadRequestException(
+                            "No payment order found matching this order ID for the authenticated user"));
             if (!paymentTransaction.getPlan().getId().equals(planId)) {
-                throw new BadRequestException("Payment order does not match selected plan");
+                throw new BadRequestException("Payment order plan mismatch: expected planId="
+                        + paymentTransaction.getPlan().getId() + ", received planId=" + planId);
             }
             if (paymentTransaction.getStatus() == PaymentTransactionStatus.SUCCESS) {
                 if (paymentId.equals(paymentTransaction.getProviderPaymentId())) {

@@ -93,7 +93,7 @@ public class AiServiceImpl implements AiService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project", request.projectId().toString()));
 
         if (!session.getProject().getId().equals(request.projectId())) {
-            throw new BadRequestException("Chat session does not belong to project");
+            throw new BadRequestException("Session does not belong to the specified project");
         }
         if (!session.getUser().getId().equals(userId)) {
             throw new ResourceNotFoundException("ChatSession", request.sessionId().toString());
