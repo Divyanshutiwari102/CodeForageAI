@@ -1,3 +1,5 @@
+"use client";
+
 import { Bell, Search, Sparkles } from "lucide-react";
 
 export function Topbar() {
