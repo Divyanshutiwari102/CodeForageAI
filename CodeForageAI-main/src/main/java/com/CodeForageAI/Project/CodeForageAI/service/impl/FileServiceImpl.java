@@ -21,7 +21,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -55,6 +55,7 @@ public class FileServiceImpl implements FileService {
     ProjectRepository projectRepository;
     UserRepository userRepository;
     RagService ragService;
+    TaskExecutor taskExecutor;
 
     @PostConstruct
     public void ensureBucketExists() {
@@ -214,9 +215,11 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    @Async("taskExecutor")
     public CompletableFuture<byte[]> exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
-        return CompletableFuture.completedFuture(exportProjectZipSync(projectId, userId, selectedPaths, asTemplate));
+        return CompletableFuture.supplyAsync(
+                () -> exportProjectZipSync(projectId, userId, selectedPaths, asTemplate),
+                taskExecutor
+        );
     }
 
     @Transactional(readOnly = true)
