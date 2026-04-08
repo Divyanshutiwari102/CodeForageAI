@@ -97,8 +97,9 @@ public class RazorpayServiceImpl implements RazorpayService {
             paymentMetricsTracker.recordCreateOrderSuccess();
             return new CreateOrderResponse(order.get("id"), serverAmount, currency, keyId);
         } catch (Exception e) {
+            String currencyForLog = request.currency() == null ? "[null]" : request.currency().trim().toUpperCase(Locale.ROOT);
             log.error("{} event=create_order status=failure correlationId={} userId={} currency={} error={}",
-                    PAYMENT_AUDIT, correlationId, userId, request.currency(), e.getMessage(), e);
+                    PAYMENT_AUDIT, correlationId, userId, currencyForLog, e.getMessage(), e);
             paymentMetricsTracker.recordCreateOrderFailure();
             throw new BadRequestException("Failed to create Razorpay order: " + e.getMessage());
         }
@@ -126,7 +127,7 @@ public class RazorpayServiceImpl implements RazorpayService {
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
             PaymentTransaction paymentTransaction = paymentTransactionRepository
-                    .findTopByUser_IdAndProviderOrderIdOrderByCreatedAtDesc(userId, orderId)
+                    .findTopByUserIdAndProviderOrderIdOrderByCreatedAtDesc(userId, orderId)
                     .orElseThrow(() -> new BadRequestException(
                             "No payment order found matching this order ID for the authenticated user"));
             if (!paymentTransaction.getPlan().getId().equals(planId)) {
