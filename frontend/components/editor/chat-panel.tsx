@@ -17,6 +17,7 @@ interface Props {
 export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, commitLoading = false }: Props) {
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const element = listRef.current;
@@ -28,6 +29,14 @@ export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, co
     if (message.content) return message.content;
     if (message.isStreaming) return "Thinking…";
     return null;
+  }
+
+  function handleInputChange(value: string) {
+    setInput(value);
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
   }
 
   return (
@@ -91,15 +100,18 @@ export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, co
           const value = input.trim();
           if (!value) return;
           setInput("");
+          const element = textareaRef.current;
+          if (element) element.style.height = "auto";
           await onSend(value);
         }}
       >
         <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => handleInputChange(event.target.value)}
           rows={1}
           placeholder="Ask AI to build, fix, or explain anything…"
-          className="flex-1 resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/15"
+          className="max-h-[200px] flex-1 resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/15"
         />
         <button
           className="rounded-xl bg-sky-500 p-2.5 text-white transition-all hover:bg-sky-400 hover:shadow-[0_0_16px_rgba(56,189,248,0.35)] active:scale-95"

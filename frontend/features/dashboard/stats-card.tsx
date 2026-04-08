@@ -7,10 +7,7 @@ function getDeltaTone(delta: string | undefined) {
   if (!value) return "neutral" as const;
   if (value.startsWith("+")) return "positive" as const;
   if (value.startsWith("-")) return "negative" as const;
-
-  const parsed = Number(value.replace(/[,%]/g, ""));
-  if (Number.isNaN(parsed) || parsed === 0) return "neutral" as const;
-  return parsed > 0 ? ("positive" as const) : ("negative" as const);
+  return "neutral" as const;
 }
 
 export function StatsCard({ item }: { item: Stats }) {
