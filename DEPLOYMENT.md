@@ -2,8 +2,8 @@
 
 ## Canonical Service Layout
 
-- Backend: `/home/runner/work/CodeForageAI/CodeForageAI/CodeForageAI-main`
-- Frontend: `/home/runner/work/CodeForageAI/CodeForageAI/CodeForageAI-main/frontend`
+- Backend: `/home/runner/work/CodeForageAI/CodeForageAI/backend`
+- Frontend: `/home/runner/work/CodeForageAI/CodeForageAI/frontend`
 
 Use only this backend/frontend pair for production to avoid duplicate-frontend divergence.
 
@@ -20,11 +20,11 @@ cp .env.example .env
 docker-compose up -d postgres redis minio qdrant
 
 # 3. Start backend
-cd CodeForageAI-main
+cd backend
 ./mvnw spring-boot:run
 
 # 4. Start frontend
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
@@ -52,12 +52,12 @@ git clone https://github.com/your-repo/CodeForageAI.git
 cd CodeForageAI
 
 # Build backend
-cd CodeForageAI-main
+cd backend
 ./mvnw package -DskipTests
 docker build -t codeforage-backend .
 
 # Build frontend
-cd frontend
+cd ../frontend
 npm ci
 npm run build
 docker build -t codeforage-frontend .
