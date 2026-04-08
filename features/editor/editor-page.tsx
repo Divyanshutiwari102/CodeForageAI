@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Download, Search, Share2, Wand2, X, ChevronRight, PanelRight, PanelLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import { ActivityBar } from "@/components/editor/activity-bar";
 import { FileTree } from "@/components/editor/file-tree";
@@ -19,7 +19,6 @@ import { shareProject } from "@/services/projects";
 import type { FileNode } from "@/types";
 import { selectMessages, selectTabs } from "@/store/selectors";
 import { useResizable } from "@/hooks/useResizable";
-import { useSessionLimitStore } from "@/store/useSessionLimitStore";
 import { SessionLimitModal } from "@/components/ui/session-limit-modal";
 import { cn } from "@/utils/cn";
 
@@ -60,6 +59,7 @@ function ResizeHandle({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export function EditorPage({ projectId }: { projectId: string }) {
+  const prefersReducedMotion = useReducedMotion();
   // Files state
   const tree = useFilesStore((s) => s.tree);
   const expanded = useFilesStore((s) => s.expanded);
@@ -108,6 +108,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [aiEditLoading, setAiEditLoading] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
+  const panelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 300, damping: 35 };
+  const modalTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 400, damping: 35 };
 
   // Resizable panels
   const sidebar = useResizable({ initialSize: 256, minSize: 140, maxSize: 460, storageKey: "cfai-sidebar-w" });
@@ -282,13 +288,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {showChat && (
             <>
               <ResizeHandle onMouseDown={chat.handleMouseDown} isDragging={chat.isDragging} />
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: chat.size, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 35 }}
-                style={{ flexShrink: 0, overflow: "hidden" }}
-              >
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: chat.size, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={panelTransition}
+                  style={{ flexShrink: 0, overflow: "hidden" }}
+                >
                 <div style={{ width: chat.size, height: "100%" }}>
                   <ChatPanel
                     messages={messages}
@@ -309,13 +315,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {showPreview && (
             <>
               <ResizeHandle onMouseDown={preview.handleMouseDown} isDragging={preview.isDragging} />
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: preview.size, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 35 }}
-                style={{ flexShrink: 0, overflow: "hidden" }}
-              >
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: preview.size, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={panelTransition}
+                  style={{ flexShrink: 0, overflow: "hidden" }}
+                >
                 <div style={{ width: preview.size, height: "100%" }}>
                   <PreviewPanel projectId={projectId} />
                 </div>
@@ -341,7 +347,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             onClick={() => setShowAiEdit(false)}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={modalTransition}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-xl overflow-hidden rounded-2xl border shadow-2xl"
               style={{ background: "#15151f", borderColor: "rgba(255,255,255,0.1)" }}>

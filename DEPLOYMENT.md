@@ -1,5 +1,14 @@
 # Deployment Guide — CodeForageAI
 
+## Canonical Service Layout
+
+- Backend: `/home/runner/work/CodeForageAI/CodeForageAI/CodeForageAI-main`
+- Frontend: `/home/runner/work/CodeForageAI/CodeForageAI/CodeForageAI-main/frontend`
+
+Use only this backend/frontend pair for production to avoid duplicate-frontend divergence.
+
+---
+
 ## Local Development (Docker Compose)
 
 ```bash

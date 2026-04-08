@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequiredArgsConstructor
@@ -69,18 +70,18 @@ public class FileController {
     }
 
     @GetMapping(value = "/export", produces = "application/zip")
-    public ResponseEntity<byte[]> exportProject(
+    public CompletableFuture<ResponseEntity<byte[]>> exportProject(
             @PathVariable Long projectId,
             @RequestParam(name = "path", required = false) List<String> selectedPaths,
             @RequestParam(name = "template", defaultValue = "false") boolean asTemplate
     ) {
         Long userId = authUtil.getCurrentUserId();
-        byte[] zipBytes = fileService.exportProjectZip(projectId, userId, selectedPaths, asTemplate);
         String fileName = asTemplate ? "project-template-" + projectId + ".zip" : "project-" + projectId + ".zip";
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                .contentType(MediaType.parseMediaType("application/zip"))
-                .body(zipBytes);
+        return fileService.exportProjectZip(projectId, userId, selectedPaths, asTemplate)
+                .thenApply(zipBytes -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                        .contentType(MediaType.parseMediaType("application/zip"))
+                        .body(zipBytes));
     }
 
     private void validateUploadRequest(MultipartFile file, Long userId) {

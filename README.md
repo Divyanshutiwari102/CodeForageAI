@@ -1,3 +1,14 @@
+# CodeForageAI
+
+Production structure:
+
+- `CodeForageAI-main` → Spring Boot backend
+- `CodeForageAI-main/frontend` → canonical Next.js frontend
+
+The root-level Next.js app is retained for compatibility/testing, but production deployment should target only the canonical frontend above to avoid architecture drift.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

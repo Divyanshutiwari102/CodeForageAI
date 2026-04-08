@@ -21,6 +21,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -212,8 +214,13 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    @Async("taskExecutor")
+    public CompletableFuture<byte[]> exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
+        return CompletableFuture.completedFuture(exportProjectZipSync(projectId, userId, selectedPaths, asTemplate));
+    }
+
     @Transactional(readOnly = true)
-    public byte[] exportProjectZip(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
+    protected byte[] exportProjectZipSync(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
         getAccessibleProject(projectId, userId);
         List<ProjectFile> files = projectFileRepository.findByProject_Id(projectId);
         Set<String> selectedNormalizedPaths = selectedPaths == null
