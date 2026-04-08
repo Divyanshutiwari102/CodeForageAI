@@ -36,6 +36,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -68,21 +69,33 @@ public class RazorpayServiceImpl implements RazorpayService {
     public CreateOrderResponse createOrder(Long userId, CreateOrderRequest request) {
         String correlationId = newCorrelationId();
         try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
             Plan plan = planRepository.findById(request.planId())
                     .orElseThrow(() -> new ResourceNotFoundException("Plan", request.planId().toString()));
             int serverAmount = resolveAmountInPaise(plan);
+            String currency = normalizeCurrency(request.currency());
             log.info("{} event=create_order status=started correlationId={} userId={} currency={}",
-                    PAYMENT_AUDIT, correlationId, userId, request.currency());
+                    PAYMENT_AUDIT, correlationId, userId, currency);
             JSONObject options = new JSONObject();
             options.put("amount", serverAmount);
-            options.put("currency", request.currency());
+            options.put("currency", currency);
             options.put("receipt", "rcpt_user_" + userId + "_" + System.currentTimeMillis());
 
             Order order = client().orders.create(options);
+            paymentTransactionRepository.save(PaymentTransaction.builder()
+                    .user(user)
+                    .plan(plan)
+                    .paymentProvider("RAZORPAY")
+                    .providerOrderId(order.get("id").toString())
+                    .status(PaymentTransactionStatus.PENDING)
+                    .amountPaise(serverAmount)
+                    .currency(currency)
+                    .build());
             log.info("{} event=create_order status=success correlationId={} userId={} orderId={} currency={}",
-                    PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), request.currency());
+                    PAYMENT_AUDIT, correlationId, userId, maskId(order.get("id").toString()), currency);
             paymentMetricsTracker.recordCreateOrderSuccess();
-            return new CreateOrderResponse(order.get("id"), serverAmount, request.currency(), keyId);
+            return new CreateOrderResponse(order.get("id"), serverAmount, currency, keyId);
         } catch (Exception e) {
             log.error("{} event=create_order status=failure correlationId={} userId={} currency={} error={}",
                     PAYMENT_AUDIT, correlationId, userId, request.currency(), e.getMessage(), e);
@@ -112,20 +125,30 @@ public class RazorpayServiceImpl implements RazorpayService {
             log.info("{} event=verify_signature status=success correlationId={} userId={} planId={} orderId={} paymentId={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
+            PaymentTransaction paymentTransaction = paymentTransactionRepository
+                    .findTopByUser_IdAndProviderOrderIdOrderByCreatedAtDesc(userId, orderId)
+                    .orElseThrow(() -> new BadRequestException("Payment order not found for user"));
+            if (!paymentTransaction.getPlan().getId().equals(planId)) {
+                throw new BadRequestException("Payment order does not match selected plan");
+            }
+            if (paymentTransaction.getStatus() == PaymentTransactionStatus.SUCCESS) {
+                if (paymentId.equals(paymentTransaction.getProviderPaymentId())) {
+                    log.info("{} event=verify_payment status=idempotent_success correlationId={} userId={} planId={} orderId={} paymentId={}",
+                            PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
+                    return;
+                }
+                throw new BadRequestException("Payment order already verified");
+            }
+
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
             Plan plan = planRepository.findById(planId)
                     .orElseThrow(() -> new ResourceNotFoundException("Plan", planId.toString()));
 
-            paymentTransactionRepository.saveAndFlush(PaymentTransaction.builder()
-                    .user(user)
-                    .plan(plan)
-                    .paymentProvider("RAZORPAY")
-                    .providerOrderId(orderId)
-                    .providerPaymentId(paymentId)
-                    .providerSignature(signature)
-                    .status(PaymentTransactionStatus.SUCCESS)
-                    .build());
+            paymentTransaction.setProviderPaymentId(paymentId);
+            paymentTransaction.setProviderSignature(signature);
+            paymentTransaction.setStatus(PaymentTransactionStatus.SUCCESS);
+            paymentTransactionRepository.saveAndFlush(paymentTransaction);
             log.info("{} event=payment_transaction status=persisted correlationId={} userId={} planId={} orderId={} paymentId={}",
                     PAYMENT_AUDIT, correlationId, userId, planId, maskId(orderId), maskId(paymentId));
 
@@ -222,6 +245,13 @@ public class RazorpayServiceImpl implements RazorpayService {
             return proAmountPaise;
         }
         throw new BadRequestException("Unsupported plan for payment");
+    }
+
+    private String normalizeCurrency(String currency) {
+        if (!StringUtils.hasText(currency)) {
+            throw new BadRequestException("Currency is required");
+        }
+        return currency.trim().toUpperCase(Locale.ROOT);
     }
 
     private String maskId(String value) {

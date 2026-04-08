@@ -54,6 +54,12 @@ public class AuthController {
         return ResponseEntity.ok(userService.getProfile(userId));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        clearAuthCookie(response);
+        return ResponseEntity.ok().build();
+    }
+
     private void addAuthCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from(AuthConstants.AUTH_TOKEN_COOKIE_NAME, token)
                 .httpOnly(true)
@@ -61,6 +67,17 @@ public class AuthController {
                 .path("/")
                 .sameSite(cookieSameSite)
                 .maxAge(AUTH_COOKIE_MAX_AGE_SECONDS)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearAuthCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(AuthConstants.AUTH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(cookieSameSite)
+                .maxAge(0)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

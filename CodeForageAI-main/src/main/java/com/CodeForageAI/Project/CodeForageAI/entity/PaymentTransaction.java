@@ -41,11 +41,17 @@ public class PaymentTransaction {
     @Column(name = "provider_order_id", nullable = false)
     String providerOrderId;
 
-    @Column(name = "provider_payment_id", nullable = false, unique = true)
+    @Column(name = "provider_payment_id", unique = true)
     String providerPaymentId;
 
-    @Column(name = "provider_signature", nullable = false)
+    @Column(name = "provider_signature")
     String providerSignature;
+
+    @Column(name = "amount_paise", nullable = false)
+    Integer amountPaise;
+
+    @Column(name = "currency", nullable = false, length = 8)
+    String currency;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

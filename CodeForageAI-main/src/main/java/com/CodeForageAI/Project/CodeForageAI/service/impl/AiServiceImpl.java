@@ -11,6 +11,7 @@ import com.CodeForageAI.Project.CodeForageAI.error.BadRequestException;
 import com.CodeForageAI.Project.CodeForageAI.error.ResourceNotFoundException;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatMessageRepository;
 import com.CodeForageAI.Project.CodeForageAI.repository.ChatSessionRepository;
+import com.CodeForageAI.Project.CodeForageAI.repository.ProjectRepository;
 import com.CodeForageAI.Project.CodeForageAI.service.AiService;
 import com.CodeForageAI.Project.CodeForageAI.service.FileService;
 import com.CodeForageAI.Project.CodeForageAI.service.QuotaService;
@@ -47,6 +48,7 @@ public class AiServiceImpl implements AiService {
     ChatClient chatClient;
     ChatSessionRepository chatSessionRepository;
     ChatMessageRepository chatMessageRepository;
+    ProjectRepository projectRepository;
     FileService fileService;
     QuotaService quotaService;
     RagService ragService;
@@ -86,6 +88,16 @@ public class AiServiceImpl implements AiService {
                 .findById(request.sessionId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "ChatSession", request.sessionId().toString()));
+
+        projectRepository.findAccessibleProjectById(request.projectId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", request.projectId().toString()));
+
+        if (!session.getProject().getId().equals(request.projectId())) {
+            throw new BadRequestException("Chat session does not belong to project");
+        }
+        if (!session.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("ChatSession", request.sessionId().toString());
+        }
 
         // Save user message before starting the stream
         ChatMessage userMessage = ChatMessage.builder()
