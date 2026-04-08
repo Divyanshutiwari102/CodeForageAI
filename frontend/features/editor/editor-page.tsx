@@ -18,8 +18,10 @@ import { shareProject } from "@/services/projects";
 import type { FileNode } from "@/types";
 import { selectMessages, selectTabs } from "@/store/selectors";
 
-const HEADER_HEIGHT = 48; // Must match header `h-12` Tailwind class.
-const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((m) => m.ChatPanel), { ssr: false });
+const HEADER_HEIGHT = 48;
+const ChatPanel = dynamic(() => import("@/components/editor/chat-panel").then((module) => module.ChatPanel), {
+  ssr: false,
+});
 
 export function EditorPage({ projectId }: { projectId: string }) {
   const tree = useFilesStore((state) => state.tree);
@@ -59,35 +61,41 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const tabs = useMemo(() => selectTabs(openTabIds, tabsByFileId), [openTabIds, tabsByFileId]);
   const messages = useMemo(() => selectMessages(messageIds, messagesById), [messageIds, messagesById]);
   const activeTab = useMemo(() => (activeFileId ? tabsByFileId[activeFileId] ?? null : null), [tabsByFileId, activeFileId]);
+
   const allFiles = useMemo(() => {
     const stack = [...tree];
     const files: FileNode[] = [];
+
     while (stack.length > 0) {
       const node = stack.pop();
       if (!node) continue;
+
       if (node.type === "file") {
         files.push(node);
       } else if (node.children?.length) {
         stack.push(...node.children);
       }
     }
+
     return files.sort((a, b) => a.id.localeCompare(b.id));
   }, [tree]);
 
   useEffect(() => {
     void loadTree(projectId);
     void boot(projectId);
-  }, [loadTree, boot, projectId]);
+  }, [boot, loadTree, projectId]);
 
   const handleExport = useCallback(async () => {
     const toastId = toast.loading("Preparing ZIP export...");
     setExportProgress(0);
+
     try {
       const { filename, blob } = await exportProjectZip(projectId, {
         asTemplate: exportTemplate,
         paths: selectedExportPaths.length > 0 ? selectedExportPaths : undefined,
         onProgress: (progress) => setExportProgress(progress),
       });
+
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -96,6 +104,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+
       toast.success("Project exported", { id: toastId });
       setShowExportOptions(false);
       setExportProgress(null);
@@ -108,30 +117,37 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     const onKeydown = (event: KeyboardEvent) => {
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
+
       if (ctrlOrMeta && event.key.toLowerCase() === "p") {
         event.preventDefault();
         setQuickOpenVisible(true);
         return;
       }
+
       if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === "e") {
         event.preventDefault();
         setShowExportOptions(true);
         return;
       }
+
       if (event.key === "Escape") {
         setShowAiEditDialog(false);
         setShowExportOptions(false);
       }
     };
+
     window.addEventListener("keydown", onKeydown);
     return () => window.removeEventListener("keydown", onKeydown);
   }, []);
 
-  const handleQuickOpenSelect = useCallback(async (file: FileNode) => {
-    await openFile(file);
-    setQuickOpenVisible(false);
-    setQuickOpenQuery("");
-  }, [openFile]);
+  const handleQuickOpenSelect = useCallback(
+    async (file: FileNode) => {
+      await openFile(file);
+      setQuickOpenVisible(false);
+      setQuickOpenQuery("");
+    },
+    [openFile],
+  );
 
   const handleShareProject = useCallback(async () => {
     setShareLoading(true);
@@ -152,6 +168,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       toast.error("Chat session not ready yet");
       return;
     }
+
     setCommitLoading(true);
     try {
       const result = await saveChatAsCommit(sessionId);
@@ -162,15 +179,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
     } finally {
       setCommitLoading(false);
     }
-  }, [sessionId, loadTree, projectId]);
+  }, [loadTree, projectId, sessionId]);
 
   const handleAiEditCurrentFile = useCallback(async () => {
     if (!activeTab) {
       toast.error("Open a file first");
       return;
     }
+
     const instruction = aiEditInstruction.trim();
     if (!instruction) return;
+
     setAiEditLoading(true);
     try {
       const response = await aiEditFile(projectId, activeTab.fileId, instruction);
@@ -184,17 +203,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
     } finally {
       setAiEditLoading(false);
     }
-  }, [activeTab, aiEditInstruction, projectId, updateTabContent, loadTree]);
+  }, [activeTab, aiEditInstruction, loadTree, projectId, updateTabContent]);
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <header className="flex h-12 items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 text-sm backdrop-blur-xl">
-        <span className="font-medium">Project #{projectId}</span>
+    <div className="h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+      <header className="flex h-12 items-center justify-between border-b border-white/[0.06] bg-zinc-950/90 px-4 text-sm backdrop-blur-xl">
+        <span className="font-medium text-zinc-100">Project #{projectId}</span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setQuickOpenVisible(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-200 transition hover:bg-white/[0.08]"
           >
             <Search className="h-3.5 w-3.5" />
             Search
@@ -209,7 +228,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               setShowAiEditDialog(true);
             }}
             disabled={aiEditLoading}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-60"
           >
             <Wand2 className="h-3.5 w-3.5" />
             AI Edit File
@@ -218,7 +237,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             type="button"
             onClick={() => void handleShareProject()}
             disabled={shareLoading}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10 disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-60"
           >
             <Share2 className="h-3.5 w-3.5" />
             Share
@@ -226,28 +245,35 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             onClick={() => setShowExportOptions((prev) => !prev)}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-200 transition hover:bg-white/[0.08]"
           >
             <Download className="h-3.5 w-3.5" />
             Export ZIP
           </button>
-          <span className="text-xs text-slate-400">Realtime IDE • Preview • AI Chat</span>
+          <span className="text-xs text-zinc-500">Realtime IDE • Preview • AI Chat</span>
         </div>
       </header>
 
-      <div className="grid grid-cols-[48px_260px_1fr] xl:grid-cols-[48px_280px_1fr_340px_360px]" style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
+      <div
+        className="grid grid-cols-[48px_260px_1fr] xl:grid-cols-[48px_280px_1fr_340px_360px]"
+        style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)` }}
+      >
         <ActivityBar />
 
-        <aside className="overflow-auto border-r border-white/10 bg-slate-950/70 p-2">
-          <p className="px-2 py-1 text-xs font-medium tracking-wide text-slate-400">Explorer</p>
+        <aside className="overflow-auto border-r border-white/[0.06] bg-zinc-950/70 p-2">
+          <p className="px-2 py-1 text-xs font-medium tracking-wide text-zinc-500">Explorer</p>
           {loading ? (
             <div className="space-y-2 p-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-6 animate-pulse rounded bg-white/10" />
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="h-6 animate-pulse rounded bg-white/[0.08]" />
               ))}
             </div>
           ) : null}
-          {!loading && error ? <div className="rounded-md border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
+
+          {!loading && error ? (
+            <div className="rounded-md border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div>
+          ) : null}
+
           {!loading && !error && tree.length > 0 ? (
             <FileTree
               nodes={tree}
@@ -259,7 +285,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           ) : null}
         </aside>
 
-        <main className="min-w-0 bg-slate-900/40">
+        <main className="min-w-0 bg-zinc-900/30">
           <EditorTabs tabs={tabs} activeFileId={activeFileId} onActivate={setActiveFile} onClose={closeTab} />
           <div className="h-[calc(100%-44px)]">
             <CodeEditor
@@ -284,10 +310,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
             commitLoading={commitLoading}
           />
         </div>
+
         <div className="hidden xl:block">
           <PreviewPanel projectId={projectId} />
         </div>
       </div>
+
       <QuickOpen
         open={quickOpenVisible}
         query={quickOpenQuery}
@@ -299,34 +327,35 @@ export function EditorPage({ projectId }: { projectId: string }) {
         }}
         onSelect={(file) => void handleQuickOpenSelect(file)}
       />
+
       {showAiEditDialog ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 p-4" onClick={() => setShowAiEditDialog(false)}>
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowAiEditDialog(false)}>
           <div
-            className="mx-auto mt-20 w-full max-w-xl rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="mx-auto mt-20 w-full max-w-xl rounded-xl border border-white/[0.08] bg-zinc-900/95 p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-medium text-slate-100">AI Edit File</h3>
+              <h3 className="text-sm font-medium text-zinc-100">AI Edit File</h3>
               <button
                 type="button"
                 onClick={() => setShowAiEditDialog(false)}
-                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10"
+                className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-300 transition hover:bg-white/[0.08]"
               >
                 Close
               </button>
             </div>
             <textarea
               value={aiEditInstruction}
-              onChange={(e) => setAiEditInstruction(e.target.value)}
+              onChange={(event) => setAiEditInstruction(event.target.value)}
               placeholder="Describe the change to apply to the current file..."
-              className="h-28 w-full rounded-md border border-white/10 bg-white/5 p-2 text-xs text-slate-100 outline-none ring-cyan-400 focus:ring-2"
+              className="h-28 w-full rounded-md border border-white/[0.08] bg-white/[0.04] p-2 text-xs text-zinc-100 outline-none focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/20"
             />
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
                 disabled={aiEditLoading || !aiEditInstruction.trim()}
                 onClick={() => void handleAiEditCurrentFile()}
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/20 disabled:opacity-60"
+                className="inline-flex items-center gap-1 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-100 transition hover:bg-sky-400/20 disabled:opacity-60"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 Apply AI Edit
@@ -335,34 +364,40 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
         </div>
       ) : null}
+
       {showExportOptions ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 p-4" onClick={() => setShowExportOptions(false)}>
-          <div className="mx-auto mt-20 w-full max-w-2xl rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowExportOptions(false)}>
+          <div
+            className="mx-auto mt-20 w-full max-w-2xl rounded-xl border border-white/[0.08] bg-zinc-900/95 p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-medium text-slate-100">Export project</h3>
+              <h3 className="text-sm font-medium text-zinc-100">Export project</h3>
               <button
                 type="button"
                 onClick={() => setShowExportOptions(false)}
-                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10"
+                className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-300 transition hover:bg-white/[0.08]"
               >
                 Close
               </button>
             </div>
-            <label className="mb-3 flex items-center gap-2 text-xs text-slate-300">
-              <input type="checkbox" checked={exportTemplate} onChange={(e) => setExportTemplate(e.target.checked)} />
+
+            <label className="mb-3 flex items-center gap-2 text-xs text-zinc-300">
+              <input type="checkbox" checked={exportTemplate} onChange={(event) => setExportTemplate(event.target.checked)} />
               Export as template
             </label>
-            <div className="max-h-64 space-y-1 overflow-auto rounded-md border border-white/10 bg-white/5 p-2">
+
+            <div className="max-h-64 space-y-1 overflow-auto rounded-md border border-white/[0.08] bg-white/[0.04] p-2">
               {allFiles.map((file) => {
                 const checked = selectedExportPaths.includes(file.id);
                 return (
-                  <label key={file.id} className="flex items-center gap-2 rounded px-1 py-1 text-xs text-slate-200 hover:bg-white/10">
+                  <label key={file.id} className="flex items-center gap-2 rounded px-1 py-1 text-xs text-zinc-200 hover:bg-white/[0.08]">
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setSelectedExportPaths((prev) =>
-                          e.target.checked ? [...prev, file.id] : prev.filter((path) => path !== file.id),
+                          event.target.checked ? [...prev, file.id] : prev.filter((path) => path !== file.id),
                         )
                       }
                     />
@@ -371,24 +406,23 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 );
               })}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">
-              Leave all unchecked to export full project.
-            </p>
+
+            <p className="mt-2 text-[11px] text-zinc-500">Leave all unchecked to export full project.</p>
+
             {exportProgress !== null ? (
               <div className="mt-2">
-                <div className="h-1.5 w-full overflow-hidden rounded bg-white/10">
-                  <div className="h-full bg-cyan-400 transition-all" style={{ width: `${exportProgress}%` }} />
+                <div className="h-1.5 w-full overflow-hidden rounded bg-white/[0.08]">
+                  <div className="h-full bg-sky-400 transition-all" style={{ width: `${exportProgress}%` }} />
                 </div>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Download progress: {exportProgress}%
-                </p>
+                <p className="mt-1 text-[11px] text-zinc-500">Download progress: {exportProgress}%</p>
               </div>
             ) : null}
+
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => void handleExport()}
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/20"
+                className="inline-flex items-center gap-1 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-100 transition hover:bg-sky-400/20"
               >
                 <Download className="h-3.5 w-3.5" />
                 Export ZIP

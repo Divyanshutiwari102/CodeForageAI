@@ -34,22 +34,22 @@ const FileTreeRow = memo(function FileTreeRow({ node, expanded, activeFileId, on
         type="button"
         onClick={() => (isFolder ? onToggle(node.id) : onOpen(node))}
         className={cn(
-          "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-all duration-200",
+          "group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] transition-all duration-150",
           isActiveFile
-            ? "bg-cyan-500/20 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.25)]"
-            : "text-slate-300 hover:bg-white/10 hover:text-slate-100",
+            ? "bg-sky-400/[0.12] font-medium text-sky-200"
+            : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200",
         )}
-        style={{ paddingLeft: 8 + level * 14 }}
+        style={{ paddingLeft: 8 + level * 16 }}
       >
         {isFolder ? (
           <>
-            <ChevronRight className={cn("h-3.5 w-3.5 text-slate-500 transition-transform duration-200", open && "rotate-90")} />
-            <Folder className={cn("h-3.5 w-3.5 transition-colors", open ? "text-cyan-300" : "text-slate-400 group-hover:text-cyan-300")} />
+            <ChevronRight className={cn("h-3.5 w-3.5 text-zinc-500 transition-transform duration-200", open && "rotate-90")} />
+            <Folder className={cn("h-3.5 w-3.5 transition-colors", open ? "text-sky-300" : "text-zinc-500 group-hover:text-zinc-300")} />
           </>
         ) : (
           <>
             <span className="w-3.5" />
-            <File className={cn("h-3.5 w-3.5 transition-colors", isActiveFile ? "text-cyan-300" : "text-slate-400 group-hover:text-slate-200")} />
+            <File className={cn("h-3.5 w-3.5 transition-colors", isActiveFile ? "text-sky-300" : "text-zinc-500 group-hover:text-zinc-300")} />
           </>
         )}
         <span className="truncate">{node.name}</span>
@@ -71,11 +71,11 @@ const FileTreeRow = memo(function FileTreeRow({ node, expanded, activeFileId, on
 
 function FileTreeComponent({ nodes, expanded, activeFileId, onToggle, onOpen, level = 0 }: Props) {
   if (nodes.length === 0) {
-    return <div className="rounded-md border border-white/10 bg-white/5 p-2 text-xs text-slate-400">No files found.</div>;
+    return <div className="rounded-md border border-white/10 bg-white/5 p-2 text-xs text-zinc-400">No files found.</div>;
   }
 
   return (
-    <ul className={cn("space-y-1", level > 0 && "border-l border-white/5 pl-1")}>
+    <ul className={cn("space-y-1", level > 0 && "border-l border-white/[0.04] pl-1")}> 
       {nodes.map((node) => (
         <FileTreeRow
           key={node.id}

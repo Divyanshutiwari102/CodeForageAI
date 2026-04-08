@@ -16,9 +16,7 @@ export function PreviewPanel({ projectId }: Props) {
     void load(projectId);
   }, [load, projectId]);
 
-  useEffect(() => {
-    return subscribeLive(projectId);
-  }, [projectId, subscribeLive]);
+  useEffect(() => subscribeLive(projectId), [projectId, subscribeLive]);
 
   async function handleRefresh() {
     const toastId = toast.loading("Refreshing preview...");
@@ -32,24 +30,27 @@ export function PreviewPanel({ projectId }: Props) {
   }
 
   return (
-    <section className="h-full border-l border-white/10 bg-slate-950/75">
-      <header className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-        <div className="min-w-0 flex-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+    <section className="h-full border-l border-white/[0.06] bg-zinc-950/80">
+      <header className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
+        <div className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[11px] text-zinc-300">
           <p className="truncate">{previewUrl ?? "No preview URL yet"}</p>
         </div>
         <button
           type="button"
           onClick={() => void handleRefresh()}
           disabled={loading}
-          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-60"
         >
           <RotateCw className="h-3.5 w-3.5" />
           Refresh
         </button>
       </header>
+
       <div className="h-[calc(100%-41px)] p-3">
         {loading ? (
-          <div className="h-full w-full animate-pulse rounded-xl border border-white/10 bg-white/5 transition-all" />
+          <div className="relative h-full overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.04]">
+            <div className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-sky-300/20 to-transparent animate-[shimmer_1.5s_infinite]" />
+          </div>
         ) : null}
 
         {!loading && error ? (
@@ -69,15 +70,10 @@ export function PreviewPanel({ projectId }: Props) {
         ) : null}
 
         {!loading && !error && previewUrl ? (
-          <div className="h-full overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] transition-all duration-200">
-            <div className="flex items-center justify-between border-b border-white/10 px-2 py-1.5 text-[11px] text-slate-300">
+          <div className="h-full overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] shadow-[0_12px_32px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-between border-b border-white/[0.08] bg-zinc-900 px-2 py-1.5 text-[11px] text-zinc-300">
               <span className="truncate pr-2">Live preview</span>
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-cyan-300 transition hover:text-cyan-200"
-              >
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sky-300 transition hover:text-sky-200">
                 Open
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -93,12 +89,12 @@ export function PreviewPanel({ projectId }: Props) {
 
         {!loading && !error && !previewUrl ? (
           <div className="grid h-full place-items-center">
-            <div className="w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-4 text-center text-xs text-slate-300">
+            <div className="w-full max-w-sm rounded-xl border border-white/[0.08] bg-white/[0.04] p-4 text-center text-xs text-zinc-300">
               <p className="mb-3">{message || "Preview is not ready yet."}</p>
               <button
                 type="button"
                 onClick={() => void handleRefresh()}
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-medium text-cyan-100 transition hover:bg-cyan-400/20"
+                className="inline-flex items-center gap-1 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-[11px] font-medium text-sky-100 transition hover:bg-sky-400/20"
               >
                 <Play className="h-3 w-3" />
                 Start preview
