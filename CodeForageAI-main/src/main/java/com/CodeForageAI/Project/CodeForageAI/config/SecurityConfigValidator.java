@@ -32,6 +32,10 @@ public class SecurityConfigValidator {
 
     @Value("${cors.allowed-origins:}")
     private String corsAllowedOrigins;
+    @Value("${auth.cookie.same-site:Lax}")
+    private String authCookieSameSite;
+    @Value("${auth.cookie.secure:true}")
+    private boolean authCookieSecure;
 
     @PostConstruct
     public void validate() {
@@ -44,6 +48,9 @@ public class SecurityConfigValidator {
         require("minio.access-key", minioAccessKey);
         require("minio.secret-key", minioSecretKey);
         require("cors.allowed-origins", corsAllowedOrigins);
+        if ("none".equalsIgnoreCase(authCookieSameSite) && !authCookieSecure) {
+            throw new IllegalStateException("auth.cookie.secure must be true when auth.cookie.same-site=None");
+        }
         if (proAmountPaise <= 0) {
             throw new IllegalStateException("payment.pricing.pro-amount-paise must be > 0");
         }

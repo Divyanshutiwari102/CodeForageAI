@@ -223,7 +223,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Transactional(readOnly = true)
-    protected byte[] exportProjectZipSync(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
+    private byte[] exportProjectZipSync(Long projectId, Long userId, List<String> selectedPaths, boolean asTemplate) {
         getAccessibleProject(projectId, userId);
         List<ProjectFile> files = projectFileRepository.findByProject_Id(projectId);
         Set<String> selectedNormalizedPaths = selectedPaths == null
