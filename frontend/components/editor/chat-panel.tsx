@@ -5,8 +5,6 @@ import { Save, Send } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/utils/cn";
 
-const THINKING_LABEL = "Thinking...";
-
 interface Props {
   messages: ChatMessage[];
   loading: boolean;
@@ -18,8 +16,8 @@ interface Props {
 
 export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, commitLoading = false }: Props) {
   const [input, setInput] = useState("");
-  const [reduceMotion, setReduceMotion] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const element = listRef.current;
@@ -27,80 +25,99 @@ export function ChatPanel({ messages, loading, error, onSend, onSaveAsCommit, co
     element.scrollTop = element.scrollHeight;
   }, [messages, loading]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setReduceMotion(media.matches);
-    apply();
-    media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
-  }, []);
-
   function renderMessageContent(message: ChatMessage) {
     if (message.content) return message.content;
-    if (message.isStreaming) return <span className={cn("text-slate-400", !reduceMotion && "animate-pulse")}>{THINKING_LABEL}</span>;
+    if (message.isStreaming) return "Thinking…";
     return null;
   }
 
+  function handleInputChange(value: string) {
+    setInput(value);
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
+  }
+
   return (
-    <section className="flex h-full flex-col border-l border-white/10 bg-slate-950/75">
-      <header className="border-b border-white/10 px-3 py-2 text-sm font-medium">AI Copilot</header>
+    <section className="flex h-full flex-col border-l border-white/[0.06] bg-zinc-950/80">
+      <header className="border-b border-white/[0.06] px-3 py-2 text-sm font-medium text-zinc-100">AI Copilot</header>
       {onSaveAsCommit ? (
-        <div className="border-b border-white/10 px-3 py-2">
+        <div className="border-b border-white/[0.06] px-3 py-2">
           <button
             type="button"
             disabled={commitLoading}
             onClick={() => void onSaveAsCommit()}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 hover:bg-white/10 disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-zinc-300 transition hover:bg-white/[0.08] disabled:opacity-60"
           >
             <Save className="h-3.5 w-3.5" />
-            Save Chat as Commit
+            Save chat as commit
           </button>
         </div>
       ) : null}
+
       <div ref={listRef} className="flex-1 space-y-3 overflow-auto p-3">
         {messages.length === 0 && !loading ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-400">
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-3 text-xs text-zinc-400">
             Start a conversation to generate code and edits.
           </div>
         ) : null}
+
         {messages.map((msg) => {
           const isAssistant = msg.role === "assistant";
           return (
             <div
               key={msg.id}
               className={cn(
-                "max-w-[90%] rounded-xl p-2 text-xs",
-                isAssistant ? "bg-white/10 text-slate-200" : "ml-auto bg-cyan-500/20 text-cyan-100",
+                "group relative max-w-[88%] rounded-2xl px-3.5 py-3 text-[13px] leading-relaxed",
+                isAssistant
+                  ? "self-start border border-white/[0.07] bg-white/[0.05] text-zinc-200"
+                  : "ml-auto self-end border border-sky-400/20 bg-sky-500/15 text-sky-100",
               )}
             >
               {renderMessageContent(msg)}
             </div>
           );
         })}
+
         {loading && !messages.some((message) => message.isStreaming) ? (
-          <div className={cn("w-fit rounded-xl bg-white/10 px-3 py-2 text-xs text-slate-400", !reduceMotion && "animate-pulse")}>{THINKING_LABEL}</div>
+          <div className="flex w-fit items-center gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.05] px-3.5 py-3">
+            <span className="thinking-dot" />
+            <span className="thinking-dot" />
+            <span className="thinking-dot" />
+          </div>
         ) : null}
-        {error ? <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div> : null}
+
+        {error ? (
+          <div className="rounded-xl border border-rose-400/20 bg-rose-400/[0.07] p-2.5 text-xs text-rose-300">{error}</div>
+        ) : null}
       </div>
+
       <form
-        className="flex items-center gap-2 border-t border-white/10 p-2"
-        onSubmit={async (e) => {
-          e.preventDefault();
+        className="flex items-end gap-2 border-t border-white/[0.07] p-3"
+        onSubmit={async (event) => {
+          event.preventDefault();
           const value = input.trim();
           if (!value) return;
           setInput("");
+          const element = textareaRef.current;
+          if (element) element.style.height = "auto";
           await onSend(value);
         }}
       >
-        <input
+        <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask AI..."
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs outline-none ring-cyan-400 transition focus:ring-2"
+          onChange={(event) => handleInputChange(event.target.value)}
+          rows={1}
+          placeholder="Ask AI to build, fix, or explain anything…"
+          className="max-h-[200px] flex-1 resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-all focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/15"
         />
-        <button className="rounded-lg bg-cyan-400 p-2 text-slate-950 transition hover:bg-cyan-300" type="submit">
-          <Send className="h-3.5 w-3.5" />
+        <button
+          className="rounded-xl bg-sky-500 p-2.5 text-white transition-all hover:bg-sky-400 hover:shadow-[0_0_16px_rgba(56,189,248,0.35)] active:scale-95"
+          type="submit"
+        >
+          <Send className="h-4 w-4" />
         </button>
       </form>
     </section>

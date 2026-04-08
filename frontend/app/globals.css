@@ -2,31 +2,105 @@
 
 :root {
   color-scheme: dark;
+  --bg: #09090b;
+  --fg: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: rgb(255 255 255 / 0.08);
+  --sky: #38bdf8;
 }
 
 @theme inline {
-  --font-sans: Inter, Geist, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-heading: Syne, Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Geist", Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 * {
-  border-color: rgb(255 255 255 / 0.08);
+  border-color: var(--border);
 }
 
 html,
 body {
-  background: #020617;
-}
-
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 code,
 pre {
   font-family: var(--font-mono);
+}
+
+.glass {
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02));
+  backdrop-filter: blur(16px);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #7dd3fc 0%, #60a5fa 45%, #818cf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav-active {
+  position: relative;
+  color: #fff;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.nav-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--sky);
+}
+
+.btn-press {
+  transition: transform 0.15s ease;
+}
+
+.btn-press:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.thinking-dot {
+  height: 6px;
+  width: 6px;
+  border-radius: 999px;
+  background: rgb(161 161 170 / 0.9);
+  animation: thinking 0.9s infinite ease-in-out;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinking {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
 }
