@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { User } from "@/types";
-import { getCurrentUser, login as loginRequest, signup as signupRequest } from "@/services/auth";
+import { getCurrentUser, login as loginRequest, logout as logoutRequest, signup as signupRequest } from "@/services/auth";
 import { clearAuthToken, setAuthToken } from "@/services/token";
 import { getErrorMessage } from "@/services/errors";
 
@@ -15,7 +15,7 @@ interface AuthState {
   login: (payload: { username: string; password: string }) => Promise<boolean>;
   signup: (payload: { username: string; name: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -82,7 +82,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error(message);
     }
   },
-  logout: () => {
+  logout: async () => {
+    try {
+      await logoutRequest();
+    } catch (error) {
+      console.warn("Logout request failed", error);
+    }
     clearAuthToken();
     set({ user: null, isAuthenticated: false, isLoading: false, error: null });
   },

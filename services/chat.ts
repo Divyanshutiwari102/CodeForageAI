@@ -1,5 +1,6 @@
 import { api } from "@/services/api";
 import { getApiBaseUrl } from "@/services/config";
+import { ensureCsrfToken, getCsrfHeaderName, getCsrfToken } from "@/services/csrf";
 import { getAuthToken } from "@/services/token";
 import type { ChatMessage } from "@/types";
 
@@ -114,6 +115,8 @@ export async function streamMessage(
   const tryStream = async (): Promise<void> => {
     const base = getApiBaseUrl();
     const token = getAuthToken();
+    await ensureCsrfToken();
+    const csrfToken = getCsrfToken();
     const controller = new AbortController();
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
@@ -128,6 +131,7 @@ export async function streamMessage(
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...(csrfToken ? { [getCsrfHeaderName()]: csrfToken } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({

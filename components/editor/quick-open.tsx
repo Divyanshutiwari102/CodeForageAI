@@ -101,8 +101,6 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose, items, highlighted, selectFile]);
 
-  useEffect(() => { setHighlighted(0); }, [query]);
-
   return (
     <AnimatePresence>
       {open && (
@@ -127,7 +125,10 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
                 <input
                   autoFocus
                   value={query}
-                  onChange={(e) => onQueryChange(e.target.value)}
+                  onChange={(e) => {
+                    setHighlighted(0);
+                    onQueryChange(e.target.value);
+                  }}
                   placeholder="Search files…"
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
                   aria-label="File search"
@@ -162,7 +163,7 @@ export function QuickOpen({ open, query, files, onQueryChange, onClose, onSelect
               {/* Results list */}
               <ul className="max-h-80 overflow-auto py-1.5" role="listbox">
                 {results.length === 0 ? (
-                  <li className="px-4 py-6 text-center text-sm text-white/25">No files match "{trimmed}"</li>
+                  <li className="px-4 py-6 text-center text-sm text-white/25">No files match &quot;{trimmed}&quot;</li>
                 ) : (
                   results.map((result, i) => {
                     const file = result.item;

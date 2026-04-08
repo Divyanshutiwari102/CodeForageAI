@@ -17,20 +17,20 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
     const stored = localStorage.getItem("cfai-theme") as Theme | null;
     const preferred = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    const initial = stored ?? preferred;
-    setThemeState(initial);
-    document.documentElement.setAttribute("data-theme", initial);
-  }, []);
+    return stored ?? preferred;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("cfai-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   function setTheme(next: Theme) {
     setThemeState(next);
-    localStorage.setItem("cfai-theme", next);
-    document.documentElement.setAttribute("data-theme", next);
   }
 
   function toggle() {

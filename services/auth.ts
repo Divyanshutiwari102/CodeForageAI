@@ -48,3 +48,7 @@ export async function getCurrentUser(): Promise<User> {
   const { data } = await api.get<UserProfileResponse>("/auth/me");
   return mapUser(data);
 }
+
+export async function logout(): Promise<void> {
+  await api.post("/auth/logout");
+}

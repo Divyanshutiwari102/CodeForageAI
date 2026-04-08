@@ -195,8 +195,6 @@ export function Sidebar() {
   const isAdmin = useMemo(() => user?.role === "ADMIN", [user?.role]);
   const recentProjects = useMemo(() => projects.slice(0, 5), [projects]);
 
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "[" && (e.metaKey || e.ctrlKey)) {

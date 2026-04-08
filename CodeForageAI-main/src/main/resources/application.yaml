@@ -55,7 +55,7 @@ jwt:
 auth:
   cookie:
     secure: ${AUTH_COOKIE_SECURE:true}
-    same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    same-site: ${AUTH_COOKIE_SAME_SITE:None}
 
 minio:
   endpoint: ${MINIO_ENDPOINT:}

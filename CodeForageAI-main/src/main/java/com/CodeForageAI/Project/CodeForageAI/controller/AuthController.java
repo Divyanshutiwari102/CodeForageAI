@@ -17,7 +17,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -58,6 +61,11 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         clearAuthCookie(response);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/csrf")
+    public ResponseEntity<Map<String, String>> csrf(CsrfToken csrfToken) {
+        return ResponseEntity.ok(Map.of("token", csrfToken.getToken()));
     }
 
     private void addAuthCookie(HttpServletResponse response, String token) {

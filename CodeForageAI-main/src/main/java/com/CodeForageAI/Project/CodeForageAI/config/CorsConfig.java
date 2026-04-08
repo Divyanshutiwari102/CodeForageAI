@@ -26,7 +26,7 @@ public class CorsConfig {
                 .collect(Collectors.toList());
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Trace-Id"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Trace-Id", "X-XSRF-TOKEN"));
         config.setExposedHeaders(List.of("Authorization", "X-Trace-Id", "Set-Cookie"));
         config.setAllowCredentials(true);
         // Required for SSE — keep connection alive for streaming responses

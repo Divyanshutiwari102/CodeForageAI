@@ -2,6 +2,7 @@ import axios from "axios";
 import { clearAuthToken, getAuthToken } from "@/services/token";
 import { AUTH_UNAUTHORIZED_EVENT } from "@/services/auth-events";
 import { getApiBaseUrl } from "@/services/config";
+import { ensureCsrfToken, getCsrfHeaderName, getCsrfToken } from "@/services/csrf";
 import { emitApiError, getErrorMessage } from "@/services/errors";
 
 const TRACE_ID_KEY = "cfai-trace-id";
@@ -36,10 +37,19 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const method = config.method?.toUpperCase();
+  const requiresCsrf = method !== undefined && !["GET", "HEAD", "OPTIONS"].includes(method);
+  if (requiresCsrf) {
+    await ensureCsrfToken();
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers[getCsrfHeaderName()] = csrfToken;
+    }
   }
   config.headers["X-Trace-Id"] = getOrCreateTraceId();
   return config;
